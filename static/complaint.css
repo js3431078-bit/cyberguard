@@ -1,0 +1,57 @@
+body {
+    font-family: Arial;
+    background: #0f172a;
+    color: white;
+}
+
+.container {
+    width: 400px;
+    margin: auto;
+    margin-top: 40px;
+    background: #1e293b;
+    padding: 20px;
+    border-radius: 10px;
+}
+
+h2 {
+    text-align: center;
+}
+
+input, textarea {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 5px;
+}
+
+textarea {
+    height: 100px;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 15px;
+    background: #22c55e;
+    border: none;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #16a34a;
+}
+
+.ai-box {
+    margin-top: 10px;
+    background: #020617;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+#preview img, video {
+    margin-top: 10px;
+    border-radius: 5px;
+}

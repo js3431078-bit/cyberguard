@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Report Incident - Student Cybercrime Portal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1b3a57">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CyberGuard">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
+.navbar{background:#1b3a57;color:#fff;padding:14px 30px;display:flex;justify-content:space-between;align-items:center;}
+.navbar h2{font-size:17px;font-weight:700;color:#ffd166;}
+.navbar a{color:#ffd166;font-size:13px;text-decoration:none;font-weight:600;}
+.page{display:flex;gap:22px;padding:24px 28px;max-width:1160px;margin:auto;}
+.left-panel{width:310px;flex-shrink:0;display:flex;flex-direction:column;gap:16px;}
+.right-panel{flex:1;}
+
+/* ── AI CARD ── */
+.ai-card{
+  background:linear-gradient(135deg,#0f2027,#1b3a57,#2c5364);
+  border-radius:14px;padding:24px;
+  box-shadow:0 6px 28px rgba(27,58,87,.35);
+  color:#fff;
+}
+.ai-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.ai-card-head h3{font-size:16px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.ai-status{font-size:11px;background:rgba(255,255,255,.15);padding:3px 10px;border-radius:12px;transition:all .3s;}
+.ai-status.active{background:rgba(34,197,94,.3);color:#86efac;}
+
+.ai-btn{
+  width:100%;padding:11px;margin-bottom:18px;
+  background:linear-gradient(135deg,#e63946,#c1121f);
+  color:#fff;border:none;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:opacity .2s,transform .1s,box-shadow .2s;
+  display:flex;align-items:center;justify-content:center;gap:7px;
+  box-shadow:0 3px 12px rgba(230,57,70,.4);
+}
+.ai-btn:hover:not(:disabled){opacity:.9;transform:translateY(-1px);box-shadow:0 5px 18px rgba(230,57,70,.5);}
+.ai-btn:active{transform:scale(.98);}
+.ai-btn:disabled{background:rgba(255,255,255,.15);box-shadow:none;cursor:not-allowed;opacity:.6;}
+
+.ai-row{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  padding:9px 0;border-bottom:1px solid rgba(255,255,255,.1);font-size:13px;
+}
+.ai-row:last-child{border:none;padding-bottom:0;}
+.ai-row .lbl{color:rgba(255,255,255,.6);font-weight:500;flex-shrink:0;margin-right:8px;}
+.ai-row .val{color:#fff;font-weight:600;text-align:right;word-break:break-word;}
+.val.threat-high{color:#fca5a5;}
+.val.threat-med{color:#fde68a;}
+.val.threat-low{color:#86efac;}
+
+.ai-action-box{
+  margin-top:16px;background:rgba(255,255,255,.1);
+  border-radius:9px;padding:12px 14px;font-size:12.5px;
+  color:rgba(255,255,255,.9);line-height:1.6;
+  border-left:3px solid #e63946;
+}
+.ai-action-box strong{display:block;color:#fca5a5;margin-bottom:4px;font-size:12px;text-transform:uppercase;letter-spacing:.4px;}
+
+/* ── SMART GUIDE CARD ── */
+.guide-card{
+  background:#fff;border-radius:12px;padding:20px;
+  box-shadow:0 2px 10px rgba(0,0,0,.07);
+  border-top:4px solid #e63946;
+}
+.guide-head{display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+.guide-ico{font-size:28px;flex-shrink:0;}
+.guide-head h4{font-size:14px;font-weight:700;color:#1b3a57;margin-bottom:2px;}
+.guide-head p{font-size:11.5px;color:#94a3b8;}
+.guide-steps{display:flex;flex-direction:column;gap:10px;}
+.guide-step{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;border-radius:8px;
+  background:#f8fafc;border:1px solid #e2e8f0;
+  transition:all .25s;
+}
+.guide-step.active{background:#fff5f5;border-color:#fecaca;}
+.guide-step.active .gs-num{background:#e63946;}
+.gs-num{
+  width:22px;height:22px;border-radius:50%;
+  background:#1b3a57;color:#fff;
+  font-size:11px;font-weight:800;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:1px;
+}
+.gs-text{font-size:12.5px;color:#334155;line-height:1.5;}
+.guide-helpline{
+  display:flex;align-items:center;gap:8px;
+  margin-top:14px;padding:10px 12px;
+  background:#fff5f5;border:1px solid #fecaca;
+  border-radius:8px;font-size:12.5px;font-weight:600;color:#c1121f;
+}
+
+/* ── TIPS CARD ── */
+.tips-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.tips-card h4{font-size:13px;font-weight:700;color:#1b3a57;margin-bottom:10px;}
+.tip{
+  display:flex;align-items:flex-start;gap:8px;padding:7px 8px;font-size:12.5px;color:#475569;
+  border-bottom:1px solid #f5f5f5;border-radius:6px;transition:background .15s;cursor:default;
+}
+.tip:hover{background:#f8fafc;}
+.tip:last-child{border:none;}
+
+/* ── FORM CARD ── */
+.form-card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 2px 12px rgba(0,0,0,.08);}
+.form-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:12px;border-bottom:2px solid #e63946;}
+.form-card-head h2{color:#1b3a57;font-size:18px;font-weight:700;}
+.form-card-head .step-badge{background:#fff5f5;color:#e63946;border:1px solid #fecaca;font-size:11px;font-weight:700;padding:4px 12px;border-radius:12px;}
+
+.f{margin-bottom:14px;}
+.f label{font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.f input,.f textarea,.f select{
+  width:100%;padding:10px 13px;border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:14px;background:#f8fafc;font-family:inherit;
+  transition:border .2s,box-shadow .2s;
+}
+.f input:focus,.f textarea:focus,.f select:focus{
+  border-color:#1b3a57;box-shadow:0 0 0 3px rgba(27,58,87,.08);outline:none;background:#fff;
+}
+.f textarea{resize:vertical;min-height:120px;}
+.f-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+/* textarea with AI indicator */
+.ta-wrap{position:relative;}
+.ta-wrap textarea{padding-right:44px;}
+.ta-ai-dot{
+  position:absolute;top:10px;right:12px;
+  width:10px;height:10px;border-radius:50%;background:#e2e8f0;
+  transition:background .3s;
+}
+.ta-ai-dot.analyzing{background:#f97316;animation:pulse .8s infinite;}
+.ta-ai-dot.done{background:#22c55e;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+
+.char-count{font-size:11px;color:#aaa;text-align:right;margin-top:3px;}
+
+.file-label{font-size:12px;color:#888;margin-bottom:4px;display:block;}
+
+/* submit btn */
+.btn-submit{
+  width:100%;padding:14px;background:#e63946;color:#fff;border:none;border-radius:8px;
+  font-size:15px;font-weight:700;cursor:pointer;margin-top:8px;
+  transition:background .2s,transform .1s,box-shadow .2s;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  box-shadow:0 3px 12px rgba(230,57,70,.3);
+}
+.btn-submit:hover:not(:disabled){background:#c1121f;transform:translateY(-1px);box-shadow:0 5px 18px rgba(230,57,70,.4);}
+.btn-submit:active{transform:scale(.98);}
+.btn-submit:disabled{background:#ccc;cursor:not-allowed;box-shadow:none;}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.35);
+  border-top-color:#fff;border-radius:50%;animation:rot .65s linear infinite;vertical-align:middle;}
+@keyframes rot{to{transform:rotate(360deg)}}
+
+/* popup */
+.popup-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:999;align-items:center;justify-content:center;}
+.popup-overlay.on{display:flex;}
+.popup{background:#fff;border-radius:14px;padding:34px 28px;max-width:400px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:up .3s ease;}
+@keyframes up{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.popup .p-ico{font-size:52px;margin-bottom:10px;}
+.popup h2{color:#1b3a57;font-size:18px;margin-bottom:8px;}
+.popup p{color:#555;font-size:13.5px;line-height:1.7;}
+.popup .p-btn{margin-top:18px;padding:11px 28px;background:#e63946;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;}
+.popup .p-btn:hover{background:#c1121f;}
+
+@media(max-width:800px){
+  .page{flex-direction:column;padding:16px;}
+  .left-panel{width:100%;}
+  .f-row{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="navbar-logo-wrap">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
+  </div>
+  <a href="/home">← Home</a>
+</div>
+
+<div class="page">
+
+  <!-- ── LEFT PANEL ── -->
+  <div class="left-panel">
+
+    <!-- AI Analysis Card -->
+    <div class="ai-card">
+      <div class="ai-card-head">
+        <h3>🤖 AI Analysis</h3>
+        <span class="ai-status" id="aiStatus">Waiting...</span>
+      </div>
+
+      <button class="ai-btn" id="aiBtn" onclick="runAI()" disabled>
+        ⚡ Analyze My Complaint
+      </button>
+
+      <div class="ai-row"><span class="lbl">Crime Type</span><span class="val" id="crimeTypeAI">—</span></div>
+      <div class="ai-row"><span class="lbl">Language</span><span class="val" id="langTypeAI">—</span></div>
+      <div class="ai-row"><span class="lbl">Threat Level</span><span class="val" id="threatLevel">—</span></div>
+      <div class="ai-row"><span class="lbl">Confidence</span><span class="val" id="confidence">—</span></div>
+      <div class="ai-row"><span class="lbl">Category</span><span class="val" id="category">—</span></div>
+
+      <div class="ai-action-box" id="actionBox" style="display:none;">
+        <strong>✅ Suggested Action</strong>
+        <span id="action"></span>
+      </div>
+    </div>
+
+    <!-- Smart Action Guide — updates based on AI result -->
+    <div class="guide-card" id="guideCard">
+      <div class="guide-head">
+        <span class="guide-ico">🧭</span>
+        <div>
+          <h4>What To Do Next</h4>
+          <p>Describe your incident and AI will guide you</p>
+        </div>
+      </div>
+      <div class="guide-steps" id="guideSteps">
+        <div class="guide-step default">
+          <div class="gs-num">1</div>
+          <div class="gs-text">Type your incident in the description box on the right</div>
+        </div>
+        <div class="guide-step default">
+          <div class="gs-num">2</div>
+          <div class="gs-text">Click "⚡ Analyze My Complaint" to get AI guidance</div>
+        </div>
+        <div class="guide-step default">
+          <div class="gs-num">3</div>
+          <div class="gs-text">Fill in all required fields and upload evidence</div>
+        </div>
+        <div class="guide-step default">
+          <div class="gs-num">4</div>
+          <div class="gs-text">Submit your complaint — authorities will be notified</div>
+        </div>
+      </div>
+      <div class="guide-helpline" id="guideHelpline" style="display:none;">
+        <span>📞</span>
+        <span id="guideHelplineText"></span>
+      </div>
+    </div>
+
+    <!-- Student Safety Tips -->
+    <div class="tips-card">
+      <h4>🔒 Student Safety Tips</h4>
+      <div class="tip">🔐 Never share your college login credentials</div>
+      <div class="tip">📸 Screenshot evidence before reporting</div>
+      <div class="tip">🚫 Don't pay for "guaranteed" scholarships</div>
+      <div class="tip">📱 Enable 2FA on all accounts</div>
+      <div class="tip">📞 iCall Student Helpline: 9152987821</div>
+      <div class="tip">🆘 Cyber Crime Helpline: 1930</div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT PANEL ── -->
+  <div class="right-panel">
+    <div class="form-card">
+      <div class="form-card-head">
+        <h2>📋 Report a Cyber Incident</h2>
+        <span class="step-badge">🎓 Student Portal</span>
+      </div>
+
+      <form id="complaintForm" onsubmit="submitComplaint(event)" enctype="multipart/form-data">
+
+        <div class="f-row">
+          <div class="f">
+            <label>Full Name</label>
+            <input type="text" name="name" placeholder="Your full name" required>
+          </div>
+          <div class="f">
+            <label>College Email</label>
+            <input type="email" name="email" placeholder="yourname@college.edu" required>
+          </div>
+        </div>
+
+        <div class="f-row">
+          <div class="f">
+            <label>Mobile Number</label>
+            <input type="tel" name="phone" placeholder="10-digit number" maxlength="10"
+              oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          </div>
+          <div class="f">
+            <label>Incident Date</label>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <select id="inc_day" name="inc_day">
+                <option value="">Day</option>
+                <script>for(var d=1;d<=31;d++){document.write('<option>'+d+'</option>');}</script>
+              </select>
+              <select id="inc_month" name="inc_month">
+                <option value="">Month</option>
+                <option value="01">January</option><option value="02">February</option>
+                <option value="03">March</option><option value="04">April</option>
+                <option value="05">May</option><option value="06">June</option>
+                <option value="07">July</option><option value="08">August</option>
+                <option value="09">September</option><option value="10">October</option>
+                <option value="11">November</option><option value="12">December</option>
+              </select>
+              <select id="inc_year" name="inc_year">
+                <option value="">Year</option>
+                <script>for(var y=new Date().getFullYear();y>=2015;y--){document.write('<option>'+y+'</option>');}</script>
+              </select>
+            </div>
+            <input type="hidden" name="date" id="dateHidden">
+          </div>
+        </div>
+
+        <div class="f-row">
+          <div class="f">
+            <label>College / University</label>
+            <input type="text" name="address" id="collegeInput" placeholder="Your college name" required>
+          </div>
+          <div class="f">
+            <label>Crime Type</label>
+            <input type="text" name="crime_type_manual" id="crimeTypeInput" placeholder="Auto-filled or type here" readonly
+              style="background:#f0fdf4;border-color:#22c55e;cursor:default;">
+          </div>
+        </div>
+
+        <div class="f-row">
+          <div class="f">
+            <label>Platform / App Involved</label>
+            <select name="platform">
+              <option value="">-- Select Platform --</option>
+              <option>WhatsApp</option>
+              <option>Instagram</option>
+              <option>Facebook</option>
+              <option>Telegram</option>
+              <option>Snapchat</option>
+              <option>Twitter / X</option>
+              <option>YouTube</option>
+              <option>Email</option>
+              <option>College Portal</option>
+              <option>UPI / PhonePe / GPay</option>
+              <option>Website / Unknown Link</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="f">
+            <label>Severity Level</label>
+            <select name="severity">
+              <option value="">-- Select Severity --</option>
+              <option>🔴 Critical — Immediate help needed</option>
+              <option>🟠 High — Serious impact</option>
+              <option>🟡 Medium — Moderate concern</option>
+              <option>🟢 Low — Minor issue</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="f">
+          <label>Suspicious URL / Link (if any)</label>
+          <input type="url" name="suspect_url" placeholder="https://suspicious-link.com (paste the link here)">
+        </div>
+
+        <div class="f">
+          <label>Describe the Incident <span style="color:#e63946;">*</span></label>          <div class="ta-wrap">
+            <textarea name="description" id="descTA"
+              placeholder="Describe what happened in detail — when, where, how, who was involved. The more detail you provide, the better our AI can help you..."
+              maxlength="1000" required></textarea>
+            <div class="ta-ai-dot" id="aiDot"></div>
+          </div>
+          <div class="char-count"><span id="charCount">0</span>/1000 characters</div>
+        </div>
+
+        <div class="f-row">
+          <div class="f">
+            <span class="file-label">📷 Screenshot / Image (max 2MB)</span>
+            <input type="file" name="image" id="imgUp" accept="image/*">
+          </div>
+          <div class="f">
+            <span class="file-label">🎥 Video Evidence (max 10MB)</span>
+            <input type="file" name="video" id="vidUp" accept="video/*">
+          </div>
+        </div>
+
+        <button type="submit" class="btn-submit" id="submitBtn">
+          🚀 Submit Complaint
+        </button>
+
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Success Popup -->
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup">
+    <div class="p-ico">🛡️</div>
+    <h2>Complaint Submitted!</h2>
+    <p id="popMsg">Your complaint has been successfully submitted to Cyber Crime. You will be contacted shortly.</p>
+    <p style="font-size:12px;color:#94a3b8;margin-top:8px;">Our team will review your complaint and get back to you.</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;">
+      <button class="p-btn" onclick="window.location.href='/home'">Go to Home</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var lastText = "";
+
+// ── Pre-fill from URL params (passed from home page quick form) ──
+(function() {
+  var p = new URLSearchParams(window.location.search);
+  if (p.get("name"))    { var el = document.querySelector('[name="name"]');    if(el) el.value = p.get("name"); }
+  if (p.get("email"))   { var el = document.querySelector('[name="email"]');   if(el) el.value = p.get("email"); }
+  if (p.get("phone"))   { var el = document.querySelector('[name="phone"]');   if(el) el.value = p.get("phone"); }
+  if (p.get("address")) { var el = document.getElementById("collegeInput");    if(el) el.value = p.get("address"); }
+  if (p.get("desc"))    { var el = document.getElementById("descTA");          if(el) { el.value = p.get("desc"); el.dispatchEvent(new Event("input")); } }
+  if (p.get("issue"))   { var el = document.getElementById("crimeTypeInput"); if(el) el.value = p.get("issue"); }
+})();
+
+// ── Guide card data ──
+var GUIDE_DATA = {
+  "Phishing": {
+    steps: ["Do NOT click any suspicious links or reply to the sender","Take screenshots of the phishing message as evidence","Report to your bank immediately if credentials were shared","Block the sender on all platforms"],
+    helpline: "Bank Fraud Helpline: 14440 | Cyber Crime: 1930"
+  },
+  "Online Financial Fraud": {
+    steps: ["Call your bank immediately to freeze the transaction","File complaint at cybercrime.gov.in within 24 hours","Keep all transaction IDs and screenshots as evidence","Do NOT transfer any more money to the scammer"],
+    helpline: "Bank Helpline: 14440 | Cyber Crime: 1930"
+  },
+  "Hacking / Unauthorized Access": {
+    steps: ["Change all your passwords immediately from a safe device","Enable 2-Factor Authentication on all accounts","Check for unknown devices in your account settings","Report to CERT-In: cert-in.org.in"],
+    helpline: "CERT-In: 1800-11-4949 | Cyber Crime: 1930"
+  },
+  "Cyberbullying / Harassment": {
+    steps: ["Block the person on all platforms immediately","Screenshot all messages and posts as evidence","Report the profile to the platform (Instagram/WhatsApp etc.)","Talk to your college counselor or trusted adult"],
+    helpline: "iCall Student Helpline: 9152987821 | Women: 1091"
+  },
+  "Malware / Ransomware": {
+    steps: ["Disconnect your device from the internet immediately","Do NOT pay any ransom — it does not guarantee recovery","Contact your college IT department for help","Report to CERT-In: cert-in.org.in"],
+    helpline: "CERT-In: 1800-11-4949 | Cyber Crime: 1930"
+  },
+  "Identity Theft": {
+    steps: ["Report the fake profile to the platform immediately","Inform your friends and classmates about the fake account","File an FIR at your nearest police station","Change passwords on all accounts linked to your identity"],
+    helpline: "Cyber Crime: 1930 | Police: 100"
+  },
+  "default": {
+    steps: ["Type your incident in the description box on the right","Click '⚡ Analyze My Complaint' to get AI guidance","Fill in all required fields and upload evidence","Submit your complaint — authorities will be notified"],
+    helpline: null
+  }
+};
+
+function updateGuide(crimeType) {
+  var data = GUIDE_DATA[crimeType] || GUIDE_DATA["default"];
+  var stepsEl = document.getElementById("guideSteps");
+  stepsEl.innerHTML = "";
+  data.steps.forEach(function(s, i) {
+    var div = document.createElement("div");
+    div.className = "guide-step active";
+    div.innerHTML = '<div class="gs-num">' + (i+1) + '</div><div class="gs-text">' + s + '</div>';
+    stepsEl.appendChild(div);
+  });
+  var hl = document.getElementById("guideHelpline");
+  if (data.helpline) {
+    document.getElementById("guideHelplineText").textContent = data.helpline;
+    hl.style.display = "flex";
+  } else {
+    hl.style.display = "none";
+  }
+  // update guide icon
+  document.querySelector(".guide-head p").textContent = "Steps for: " + (crimeType !== "default" ? crimeType : "your incident");
+}
+
+// ── Textarea: char count + live AI dot + enable AI button ──
+document.getElementById("descTA").addEventListener("input", function() {
+  var len = this.value.length;
+  document.getElementById("charCount").textContent = len;
+  lastText = this.value.trim();
+
+  var dot = document.getElementById("aiDot");
+  var btn = document.getElementById("aiBtn");
+
+  if (lastText.length >= 15) {
+    dot.className = "ta-ai-dot analyzing";
+    btn.disabled = false;
+    document.getElementById("aiStatus").textContent = "Ready";
+    document.getElementById("aiStatus").className = "ai-status active";
+    // auto-analyze after 1.2s pause
+    clearTimeout(window.aiAutoTimer);
+    window.aiAutoTimer = setTimeout(function(){ runAI(); }, 1200);
+  } else {
+    dot.className = "ta-ai-dot";
+    btn.disabled = true;
+    document.getElementById("aiStatus").textContent = "Waiting...";
+    document.getElementById("aiStatus").className = "ai-status";
+    resetAI();
+  }
+});
+
+// ── Run AI Analysis ──
+function runAI() {
+  var text = document.getElementById("descTA").value.trim();
+  if (text.length < 10) return;
+
+  document.getElementById("aiStatus").textContent = "Analyzing...";
+  document.getElementById("aiStatus").className = "ai-status";
+  document.getElementById("aiDot").className = "ta-ai-dot analyzing";
+  document.getElementById("aiBtn").disabled = true;
+
+  fetch("/analyze", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({text: text})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    document.getElementById("crimeTypeAI").textContent = d.crime;
+    document.getElementById("langTypeAI").textContent  = d.language;
+
+    var tEl = document.getElementById("threatLevel");
+    tEl.textContent = d.threat;
+    tEl.className = "val " + (d.threat.includes("Critical") || d.threat.includes("High") ? "threat-high" : d.threat.includes("Medium") ? "threat-med" : "threat-low");
+
+    document.getElementById("confidence").textContent = d.confidence;
+    document.getElementById("category").textContent   = d.category;
+    document.getElementById("action").textContent     = d.action;
+    document.getElementById("actionBox").style.display = "block";
+
+    document.getElementById("crimeTypeInput").value = d.crime;
+    updateGuide(d.crime);
+
+    document.getElementById("aiStatus").textContent = "✓ Done";
+    document.getElementById("aiStatus").className = "ai-status active";
+    document.getElementById("aiDot").className = "ta-ai-dot done";
+    document.getElementById("aiBtn").disabled = false;
+  })
+  .catch(function(){
+    document.getElementById("aiStatus").textContent = "Error";
+    document.getElementById("aiDot").className = "ta-ai-dot";
+    document.getElementById("aiBtn").disabled = false;
+  });
+}
+
+function resetAI() {
+  ["crimeTypeAI","langTypeAI","threatLevel","confidence","category"].forEach(function(id){
+    var el = document.getElementById(id);
+    el.textContent = "—";
+    el.className = "val";
+  });
+  document.getElementById("actionBox").style.display = "none";
+}
+
+// ── Combine Day/Month/Year into hidden date field ──
+function buildDate() {
+  var d = document.getElementById("inc_day").value;
+  var m = document.getElementById("inc_month").value;
+  var y = document.getElementById("inc_year").value;
+  if (d && m && y) {
+    var dd = d.length === 1 ? "0" + d : d;
+    document.getElementById("dateHidden").value = dd + "/" + m + "/" + y;
+  }
+}
+["inc_day","inc_month","inc_year"].forEach(function(id){
+  document.getElementById(id).addEventListener("change", buildDate);
+});
+document.getElementById("imgUp").addEventListener("change", function() {
+  if (this.files[0] && this.files[0].size > 2*1024*1024) { alert("Image must be under 2MB"); this.value=""; }
+});
+document.getElementById("vidUp").addEventListener("change", function() {
+  if (this.files[0] && this.files[0].size > 10*1024*1024) { alert("Video must be under 10MB"); this.value=""; }
+});
+
+// ── Submit ──
+function submitComplaint(e) {
+  e.preventDefault();
+  // validate date
+  var d = document.getElementById("inc_day").value;
+  var m = document.getElementById("inc_month").value;
+  var y = document.getElementById("inc_year").value;
+  if (!d || !m || !y) {
+    alert("Please select the full incident date (Day, Month, Year).");
+    return;
+  }
+  buildDate();
+  var btn = document.getElementById("submitBtn");
+  btn.innerHTML = '<span class="spin"></span> Submitting...';
+  btn.disabled = true;
+
+  var fd = new FormData(document.getElementById("complaintForm"));
+
+  fetch("/submit_complaint", {method:"POST", body:fd})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.status === "success") {
+      document.getElementById("popMsg").textContent = d.message;
+      document.getElementById("popupOverlay").className = "popup-overlay on";
+    } else {
+      alert(d.message || "Submission failed.");
+      btn.innerHTML = "🚀 Submit Complaint";
+      btn.disabled = false;
+    }
+  })
+  .catch(function(err){
+    alert("Server error: " + (err.message || "Please try again."));
+    btn.innerHTML = "🚀 Submit Complaint";
+    btn.disabled = false;
+  });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+</body>
+</html>

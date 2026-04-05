@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Contact Us - AI Cybercrime Portal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1b3a57">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CyberGuard">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:#1e293b;}
+
+.navbar{background:#1b3a57;color:#fff;padding:14px 30px;display:flex;justify-content:center;align-items:center;position:relative;}
+.navbar h2{font-size:22px;font-weight:700;color:#ffd166;}
+.navbar a{color:#ffd166;font-size:13px;text-decoration:none;font-weight:600;position:absolute;right:30px;}
+
+.hero{background:linear-gradient(135deg,#1b3a57,#2c5364);color:#fff;text-align:center;padding:44px 20px;}
+.hero h1{font-size:26px;font-weight:800;margin-bottom:6px;}
+.hero p{font-size:13.5px;color:#e0f0ff;max-width:500px;margin:0 auto 20px;}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.hbtn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:8px;font-size:13.5px;font-weight:700;text-decoration:none;transition:opacity .2s;}
+.hbtn:hover{opacity:.88;}
+.hbtn-w{background:#fff;color:#1b3a57;}
+.hbtn-o{background:transparent;color:#fff;border:2px solid rgba(255,255,255,.6);}
+
+.page{max-width:1080px;margin:0 auto;padding:28px 20px;}
+
+.back{display:inline-flex;align-items:center;gap:6px;background:#1b3a57;color:#fff;
+  padding:9px 18px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:600;
+  margin-bottom:24px;transition:background .2s;}
+.back:hover{background:#0f2233;}
+
+/* emergency */
+.emergency{background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;border-radius:12px;
+  padding:20px 26px;margin-bottom:28px;display:flex;align-items:center;gap:16px;
+  box-shadow:0 4px 18px rgba(230,57,70,.3);}
+.emergency .em-icon{font-size:38px;flex-shrink:0;}
+.emergency h2{font-size:18px;font-weight:800;margin-bottom:3px;}
+.emergency p{font-size:13px;opacity:.9;}
+.emergency .em-num{margin-left:auto;flex-shrink:0;background:rgba(255,255,255,.2);
+  border-radius:8px;padding:10px 18px;text-align:center;}
+.emergency .em-num span{display:block;font-size:28px;font-weight:900;letter-spacing:2px;}
+.emergency .em-num small{font-size:11px;opacity:.8;}
+
+/* section title */
+.sec-title{font-size:16px;font-weight:700;color:#1b3a57;margin-bottom:14px;
+  padding-bottom:7px;border-bottom:3px solid #e63946;display:inline-block;}
+
+/* helpline grid */
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px;margin-bottom:28px;}
+.hcard{background:#fff;border-radius:10px;padding:18px 16px;box-shadow:0 2px 10px rgba(0,0,0,.07);
+  border-left:4px solid #e63946;transition:transform .2s,box-shadow .2s;}
+.hcard:hover{transform:translateY(-2px);box-shadow:0 5px 16px rgba(0,0,0,.11);}
+.hcard .hc-ico{font-size:24px;margin-bottom:8px;}
+.hcard h3{font-size:13px;font-weight:700;color:#1b3a57;margin-bottom:3px;}
+.hcard .hc-num{font-size:20px;font-weight:800;color:#e63946;margin-bottom:3px;}
+.hcard p{font-size:11.5px;color:#64748b;margin-bottom:10px;}
+.call-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 14px;
+  background:#e63946;color:#fff;border-radius:16px;font-size:12px;font-weight:700;
+  text-decoration:none;transition:background .2s;}
+.call-btn:hover{background:#c1121f;}
+
+/* two col */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:28px;align-items:start;}
+.icard{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.icard h3{font-size:14px;font-weight:700;color:#1b3a57;margin-bottom:12px;
+  display:flex;align-items:center;gap:7px;padding-bottom:8px;border-bottom:2px solid #f1f5f9;}
+.prow{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:9px 0;border-bottom:1px solid #f8fafc;}
+.prow:last-child{border:none;padding-bottom:0;}
+.prow-left{display:flex;align-items:center;gap:8px;}
+.prow-ico{font-size:17px;flex-shrink:0;}
+.prow-name{font-size:12.5px;font-weight:600;color:#334155;}
+.pbtn{display:inline-flex;align-items:center;gap:4px;padding:6px 12px;border-radius:6px;
+  font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0;
+  transition:background .2s;}
+.pbtn-b{background:#eff6ff;color:#1b3a57;border:1.5px solid #bfdbfe;}
+.pbtn-b:hover{background:#dbeafe;}
+.pbtn-r{background:#fff5f5;color:#c1121f;border:1.5px solid #fecaca;}
+.pbtn-r:hover{background:#fee2e2;}
+
+/* table */
+.tcard{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);margin-bottom:28px;overflow-x:auto;}
+.tcard h3{font-size:14px;font-weight:700;color:#1b3a57;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+th{background:#1b3a57;color:#fff;padding:10px 12px;text-align:left;font-weight:600;}
+td{padding:9px 12px;border-bottom:1px solid #f1f5f9;color:#334155;vertical-align:middle;}
+tr:hover td{background:#f8fafc;}
+.tbl-call{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  background:#e63946;color:#fff;border-radius:12px;font-size:11.5px;font-weight:700;
+  text-decoration:none;white-space:nowrap;}
+.tbl-call:hover{background:#c1121f;}
+.tbl-link{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;
+  background:#eff6ff;color:#1b3a57;border:1px solid #bfdbfe;border-radius:6px;
+  font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;}
+.tbl-link:hover{background:#dbeafe;}
+
+/* tips */
+.tgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px;}
+.tip{background:#fff;border-radius:10px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06);text-align:center;}
+.tip .t-ico{font-size:26px;margin-bottom:7px;}
+.tip p{font-size:12px;color:#475569;line-height:1.5;}
+
+@media(max-width:680px){
+  .two-col{grid-template-columns:1fr;}
+  .emergency{flex-direction:column;text-align:center;}
+  .emergency .em-num{margin:0 auto;}
+}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="navbar-logo-wrap">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
+  </div>
+  <a href="/home">← Back to Home</a>
+</div>
+
+<div class="hero">
+  <h1>📞 Contact & Support</h1>
+  <p>Get help, report cybercrime, and connect with the right authorities. Available 24/7.</p>
+  <div class="hero-btns">
+    <a href="tel:1930" class="hbtn hbtn-w">📞 Call 1930 Now</a>
+    <a href="https://cybercrime.gov.in" target="_blank" class="hbtn hbtn-o">🌐 cybercrime.gov.in</a>
+    <a href="/complaint" class="hbtn hbtn-w">📋 File Complaint</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <a href="/home" class="back">← Back to Home</a>
+
+  <!-- Emergency -->
+  <div class="emergency">
+    <div class="em-icon">🚨</div>
+    <div>
+      <h2>Cyber Crime Emergency Helpline</h2>
+      <p>Victim of cybercrime? Call immediately. Available 24 hours, 7 days a week.</p>
+    </div>
+    <div class="em-num"><span>1930</span><small>National Helpline</small></div>
+  </div>
+
+  <!-- Helplines -->
+  <div class="sec-title">📱 Helpline Numbers</div>
+  <div class="hgrid">
+    <div class="hcard">
+      <div class="hc-ico">🔐</div>
+      <h3>Cyber Crime</h3>
+      <div class="hc-num">1930</div>
+      <p>National helpline. 24/7.</p>
+      <a href="tel:1930" class="call-btn">📞 Call</a>
+    </div>
+    <div class="hcard">
+      <div class="hc-ico">👮</div>
+      <h3>Police Emergency</h3>
+      <div class="hc-num">100</div>
+      <p>Immediate police help.</p>
+      <a href="tel:100" class="call-btn">📞 Call</a>
+    </div>
+    <div class="hcard">
+      <div class="hc-ico">👩</div>
+      <h3>Women Helpline</h3>
+      <div class="hc-num">1091</div>
+      <p>Online harassment & abuse.</p>
+      <a href="tel:1091" class="call-btn">📞 Call</a>
+    </div>
+    <div class="hcard">
+      <div class="hc-ico">👶</div>
+      <h3>Child Helpline</h3>
+      <div class="hc-num">1098</div>
+      <p>Child safety & exploitation.</p>
+      <a href="tel:1098" class="call-btn">📞 Call</a>
+    </div>
+    <div class="hcard">
+      <div class="hc-ico">🏦</div>
+      <h3>Bank Fraud</h3>
+      <div class="hc-num">14440</div>
+      <p>Financial cyber fraud.</p>
+      <a href="tel:14440" class="call-btn">📞 Call</a>
+    </div>
+    <div class="hcard">
+      <div class="hc-ico">📡</div>
+      <h3>CERT-In</h3>
+      <div class="hc-num">1800-11-4949</div>
+      <p>Cyber security. Free call.</p>
+      <a href="tel:18001149494" class="call-btn">📞 Call</a>
+    </div>
+    <div class="hcard" style="border-left-color:#7c3aed;">
+      <div class="hc-ico">🎓</div>
+      <h3>Student Helpline</h3>
+      <div class="hc-num">1800-180-5522</div>
+      <p>UGC student support. Free.</p>
+      <a href="tel:18001805522" class="call-btn" style="background:#7c3aed;">📞 Call</a>
+    </div>
+    <div class="hcard" style="border-left-color:#7c3aed;">
+      <div class="hc-ico">🧑‍💻</div>
+      <h3>iCall (Students)</h3>
+      <div class="hc-num">9152987821</div>
+      <p>Cyber bullying & mental health for students.</p>
+      <a href="tel:9152987821" class="call-btn" style="background:#7c3aed;">📞 Call</a>
+    </div>
+    <div class="hcard" style="border-left-color:#0d9488;">
+      <div class="hc-ico">🧠</div>
+      <h3>Vandrevala Foundation</h3>
+      <div class="hc-num">1860-2662-345</div>
+      <p>24/7 mental health & cyber trauma support.</p>
+      <a href="tel:18602662345" class="call-btn" style="background:#0d9488;">📞 Call</a>
+    </div>
+    <div class="hcard" style="border-left-color:#0d9488;">
+      <div class="hc-ico">📲</div>
+      <h3>Sanchar Saathi</h3>
+      <div class="hc-num">1800-11-0420</div>
+      <p>Report lost/stolen phone & SIM fraud.</p>
+      <a href="tel:18001100420" class="call-btn" style="background:#0d9488;">📞 Call</a>
+    </div>
+    <div class="hcard" style="border-left-color:#f97316;">
+      <div class="hc-ico">🆘</div>
+      <h3>National Emergency</h3>
+      <div class="hc-num">112</div>
+      <p>All emergencies — police, fire, ambulance.</p>
+      <a href="tel:112" class="call-btn" style="background:#f97316;">📞 Call</a>
+    </div>
+    <div class="hcard" style="border-left-color:#f97316;">
+      <div class="hc-ico">🏥</div>
+      <h3>Ambulance</h3>
+      <div class="hc-num">108</div>
+      <p>Medical emergency anywhere in India.</p>
+      <a href="tel:108" class="call-btn" style="background:#f97316;">📞 Call</a>
+    </div>
+  </div>
+
+  <!-- Online Portals + Email -->
+  <div class="two-col">
+    <div class="icard">
+      <h3>🌐 Online Portals</h3>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">💻</div><div class="prow-name">National Cyber Crime Portal</div></div>
+        <a href="https://cybercrime.gov.in" target="_blank" class="pbtn pbtn-b">🔗 Open</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">🔒</div><div class="prow-name">CERT-In (Cyber Security)</div></div>
+        <a href="https://www.cert-in.org.in" target="_blank" class="pbtn pbtn-b">🔗 Open</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📋</div><div class="prow-name">MHA Cyber Division</div></div>
+        <a href="https://www.mha.gov.in" target="_blank" class="pbtn pbtn-b">🔗 Open</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">🏛️</div><div class="prow-name">IT Ministry (MeitY)</div></div>
+        <a href="https://www.meity.gov.in" target="_blank" class="pbtn pbtn-b">🔗 Open</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">🎓</div><div class="prow-name">UGC Student Portal</div></div>
+        <a href="https://www.ugc.gov.in" target="_blank" class="pbtn pbtn-b">🔗 Open</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📱</div><div class="prow-name">Sanchar Saathi Portal</div></div>
+        <a href="https://sancharsaathi.gov.in" target="_blank" class="pbtn pbtn-b">🔗 Open</a>
+      </div>
+    </div>
+
+    <div class="icard">
+      <h3>📧 Email Contacts</h3>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📨</div><div class="prow-name">CERT-In Incident Report</div></div>
+        <a href="mailto:incident@cert-in.org.in" class="pbtn pbtn-r">✉️ Mail</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📨</div><div class="prow-name">CERT-In General Enquiry</div></div>
+        <a href="mailto:info@cert-in.org.in" class="pbtn pbtn-r">✉️ Mail</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📨</div><div class="prow-name">Cyber Crime Portal Support</div></div>
+        <a href="mailto:support@cybercrime.gov.in" class="pbtn pbtn-r">✉️ Mail</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📨</div><div class="prow-name">MHA Cyber Division</div></div>
+        <a href="mailto:cybercrime@nic.in" class="pbtn pbtn-r">✉️ Mail</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📨</div><div class="prow-name">UGC Student Grievance</div></div>
+        <a href="mailto:helpdesk@ugc.ac.in" class="pbtn pbtn-r">✉️ Mail</a>
+      </div>
+      <div class="prow">
+        <div class="prow-left"><div class="prow-ico">📨</div><div class="prow-name">MeitY Grievance</div></div>
+        <a href="mailto:webmaster@meity.gov.in" class="pbtn pbtn-r">✉️ Mail</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- State Cyber Cells -->
+  <div class="tcard">
+    <h3>🏢 State Cyber Crime Cells</h3>
+    <table>
+      <tr><th>State</th><th>Helpline</th><th>Email</th><th>Website</th></tr>
+      <tr>
+        <td><strong>Maharashtra</strong></td>
+        <td><a href="tel:02226573434" class="tbl-call">022-26573434</a></td>
+        <td>cybercell@mahapolice.gov.in</td>
+        <td><a href="https://www.mahapolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Delhi</strong></td>
+        <td><a href="tel:01123490001" class="tbl-call">011-23490001</a></td>
+        <td>cybercell@delhipolice.gov.in</td>
+        <td><a href="https://www.delhipolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Karnataka</strong></td>
+        <td><a href="tel:08022943050" class="tbl-call">080-22943050</a></td>
+        <td>cybercrime@ksp.gov.in</td>
+        <td><a href="https://www.ksp.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Tamil Nadu</strong></td>
+        <td><a href="tel:04428512526" class="tbl-call">044-28512526</a></td>
+        <td>cybercrime@tnpolice.gov.in</td>
+        <td><a href="https://www.tnpolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Gujarat</strong></td>
+        <td><a href="tel:07923250798" class="tbl-call">079-23250798</a></td>
+        <td>cybercell@gujaratpolice.gov.in</td>
+        <td><a href="https://www.gujaratpolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Rajasthan</strong></td>
+        <td><a href="tel:01412744000" class="tbl-call">0141-2744000</a></td>
+        <td>cybercrime@rajpolice.gov.in</td>
+        <td><a href="https://police.rajasthan.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Uttar Pradesh</strong></td>
+        <td><a href="tel:05222208100" class="tbl-call">0522-2208100</a></td>
+        <td>cybercell@uppolice.gov.in</td>
+        <td><a href="https://www.uppolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>West Bengal</strong></td>
+        <td><a href="tel:03322143004" class="tbl-call">033-22143004</a></td>
+        <td>cybercrime@kolkatapolice.gov.in</td>
+        <td><a href="https://www.kolkatapolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Telangana</strong></td>
+        <td><a href="tel:04027852222" class="tbl-call">040-27852222</a></td>
+        <td>cybercrime@tspolice.gov.in</td>
+        <td><a href="https://www.tspolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+      <tr>
+        <td><strong>Punjab</strong></td>
+        <td><a href="tel:01722749900" class="tbl-call">0172-2749900</a></td>
+        <td>cybercrime@punjabpolice.gov.in</td>
+        <td><a href="https://www.punjabpolice.gov.in" target="_blank" class="tbl-link">🔗 Visit</a></td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Safety Tips -->
+  <div class="sec-title">🔒 Quick Safety Reminders</div>
+  <div class="tgrid">
+    <div class="tip"><div class="t-ico">🚫</div><p>Never share OTP, PIN or password with anyone.</p></div>
+    <div class="tip"><div class="t-ico">🔗</div><p>Do not click unknown links in SMS, WhatsApp or email.</p></div>
+    <div class="tip"><div class="t-ico">📸</div><p>Take screenshots as evidence before reporting.</p></div>
+    <div class="tip"><div class="t-ico">⏱️</div><p>Report financial fraud within 24 hours for faster recovery.</p></div>
+    <div class="tip"><div class="t-ico">🔐</div><p>Enable 2-Factor Authentication on all accounts.</p></div>
+    <div class="tip"><div class="t-ico">📱</div><p>Download apps only from Play Store or App Store.</p></div>
+    <div class="tip"><div class="t-ico">🎓</div><p>Students: Report cyber bullying to iCall: 9152987821.</p></div>
+    <div class="tip"><div class="t-ico">🧠</div><p>Feeling distressed after cyber attack? Call 1860-2662-345.</p></div>
+  </div>
+
+  <footer>
+    <p>© 2026 <strong>AI Cybercrime Reporting System</strong> | Government Cyber Security Initiative &nbsp;|&nbsp;
+    Emergency: <strong>1930</strong></p>
+  </footer>
+
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Data Viewer - Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
+.navbar{background:linear-gradient(135deg,#1b3a57,#0f2027);color:#fff;padding:0 28px;height:58px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.2);position:sticky;top:0;z-index:100;}
+.navbar h2{font-size:16px;font-weight:700;color:#ffd166;}
+.nav-links{display:flex;gap:14px;align-items:center;}
+.nav-links a{color:#ffd166;font-size:12.5px;text-decoration:none;font-weight:600;padding:5px 12px;border-radius:6px;transition:background .2s;}
+.nav-links a:hover{background:rgba(255,255,255,.1);}
+.page{max-width:1400px;margin:auto;padding:24px 28px;}
+
+/* ── TABLE SELECTOR ── */
+.table-nav{display:flex;gap:10px;margin-bottom:22px;flex-wrap:wrap;}
+.tn-btn{
+  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;
+  text-decoration:none;display:flex;align-items:center;gap:8px;
+  background:#fff;color:#64748b;border:2px solid #e2e8f0;
+  transition:all .2s;
+}
+.tn-btn:hover{border-color:#1b3a57;color:#1b3a57;}
+.tn-btn.active{background:#1b3a57;color:#fff;border-color:#1b3a57;box-shadow:0 3px 10px rgba(27,58,87,.3);}
+.tn-btn .cnt{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;font-size:11px;}
+.tn-btn:not(.active) .cnt{background:#f0f4f8;color:#94a3b8;}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap;}
+.toolbar h3{font-size:16px;font-weight:700;color:#1b3a57;flex:1;}
+.search-box{padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;outline:none;width:260px;transition:border .2s;}
+.search-box:focus{border-color:#1b3a57;}
+.csv-btn{padding:8px 18px;background:#16a34a;color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:6px;transition:background .2s;cursor:pointer;}
+.csv-btn:hover{background:#15803d;}
+.row-count{font-size:12px;color:#94a3b8;font-weight:600;}
+
+/* ── TABLE ── */
+.tbl-card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead tr{background:#1b3a57;}
+th{color:#fff;padding:12px 14px;text-align:left;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+td{padding:11px 14px;border-bottom:1px solid #f0f4f8;color:#334155;vertical-align:top;max-width:280px;word-break:break-word;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fafc;}
+tr:nth-child(even) td{background:#fafbfc;}
+tr:nth-child(even):hover td{background:#f0f4f8;}
+
+/* column-specific styling */
+td.col-id{color:#94a3b8;font-weight:700;font-size:12px;width:50px;}
+td.col-status-pending{color:#c2410c;font-weight:700;}
+td.col-status-resolved{color:#15803d;font-weight:700;}
+td.col-status-inprog{color:#1d4ed8;font-weight:700;}
+td.col-action{font-size:11.5px;}
+td.col-desc{font-size:12px;color:#475569;max-width:300px;}
+td.col-ts{font-size:11.5px;color:#94a3b8;white-space:nowrap;}
+td.col-email{color:#1b3a57;font-weight:600;}
+
+.empty{text-align:center;padding:60px;color:#aaa;}
+.empty-ico{font-size:48px;margin-bottom:10px;}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;gap:6px;justify-content:center;padding:18px;flex-wrap:wrap;}
+.pg-btn{padding:6px 14px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;font-size:12.5px;font-weight:600;cursor:pointer;color:#64748b;transition:all .2s;}
+.pg-btn:hover,.pg-btn.active{background:#1b3a57;color:#fff;border-color:#1b3a57;}
+.pg-info{font-size:12px;color:#94a3b8;text-align:center;padding-bottom:12px;}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <h2>🗄️ SQL Data Viewer — Admin</h2>
+  <div class="nav-links">
+    <span style="color:#e2e8f0;font-size:12px;">👤 {{ username }}</span>
+    <a href="/dashboard">← Dashboard</a>
+    <a href="/logout">Logout</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- TABLE SELECTOR -->
+  <div class="table-nav">
+    <a href="/data-viewer?table=complaints"
+       class="tn-btn {% if table=='complaints' %}active{% endif %}">
+      📋 Complaints <span class="cnt">{{ counts.get('complaints',0) }}</span>
+    </a>
+    <a href="/data-viewer?table=users"
+       class="tn-btn {% if table=='users' %}active{% endif %}">
+      👥 Users <span class="cnt">{{ counts.get('users',0) }}</span>
+    </a>
+    <a href="/data-viewer?table=activity_logs"
+       class="tn-btn {% if table=='activity_logs' %}active{% endif %}">
+      📜 Activity Log <span class="cnt">{{ counts.get('activity_logs',0) }}</span>
+    </a>
+    <a href="/data-viewer?table=ai_analysis_logs"
+       class="tn-btn {% if table=='ai_analysis_logs' %}active{% endif %}">
+      🤖 AI Analysis Log <span class="cnt">{{ counts.get('ai_analysis_logs',0) }}</span>
+    </a>
+  </div>
+
+  <!-- TOOLBAR -->
+  <div class="toolbar">
+    <h3>
+      {% if table == 'complaints' %}📋 Complaints Table
+      {% elif table == 'users' %}👥 Users Table
+      {% elif table == 'activity_logs' %}📜 Activity Logs Table
+      {% else %}🤖 AI Analysis Logs Table{% endif %}
+    </h3>
+    <input class="search-box" id="searchBox" type="text" placeholder="🔍 Search any column...">
+    <span class="row-count" id="rowCount">{{ rows|length }} rows</span>
+    <a class="csv-btn" href="/export/{{ 'complaints' if table=='complaints' else 'users' if table=='users' else 'activity' if table=='activity_logs' else 'ai_logs' }}.csv">
+      ⬇️ Download CSV
+    </a>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tbl-card">
+    <div class="tbl-wrap">
+      {% if rows %}
+      <table id="dataTable">
+        <thead>
+          <tr>
+            {% for h in headers %}
+            <th>{{ h.replace('_',' ').upper() }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          {% for row in rows %}
+          <tr>
+            {% for h in headers %}
+            <td class="
+              {%- if h == 'id' %} col-id
+              {%- elif h in ['email','user_email'] %} col-email
+              {%- elif h == 'status' %}
+                {%- if row[h] == 'Pending' %} col-status-pending
+                {%- elif row[h] == 'Resolved' %} col-status-resolved
+                {%- else %} col-status-inprog{% endif %}
+              {%- elif h in ['description','detail','input_text'] %} col-desc
+              {%- elif h in ['timestamp','submitted','created'] %} col-ts
+              {%- elif h == 'action' %} col-action
+              {%- endif %}
+            ">{{ row[h] or '—' }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">
+        <div class="empty-ico">📭</div>
+        <div>No records found in this table yet.</div>
+      </div>
+      {% endif %}
+    </div>
+    <div class="pg-info" id="pgInfo"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+</div>
+
+<script>
+var ROWS_PER_PAGE = 20;
+var currentPage = 1;
+var allRows = [];
+
+function init() {
+  allRows = Array.from(document.querySelectorAll("#tableBody tr"));
+  renderPage(1);
+}
+
+function renderPage(page) {
+  currentPage = page;
+  var filtered = getFiltered();
+  var total = filtered.length;
+  var pages = Math.ceil(total / ROWS_PER_PAGE) || 1;
+  var start = (page - 1) * ROWS_PER_PAGE;
+  var end = start + ROWS_PER_PAGE;
+
+  allRows.forEach(function(r){ r.style.display = "none"; });
+  filtered.slice(start, end).forEach(function(r){ r.style.display = ""; });
+
+  document.getElementById("rowCount").textContent = total + " rows";
+  document.getElementById("pgInfo").textContent =
+    total > 0 ? "Showing " + (start+1) + "–" + Math.min(end, total) + " of " + total + " records" : "No records";
+
+  var pg = document.getElementById("pagination");
+  pg.innerHTML = "";
+  if (pages <= 1) return;
+  for (var i = 1; i <= pages; i++) {
+    var btn = document.createElement("button");
+    btn.className = "pg-btn" + (i === page ? " active" : "");
+    btn.textContent = i;
+    btn.dataset.page = i;
+    btn.onclick = function(){ renderPage(parseInt(this.dataset.page)); };
+    pg.appendChild(btn);
+  }
+}
+
+function getFiltered() {
+  var q = document.getElementById("searchBox").value.toLowerCase().trim();
+  if (!q) return allRows;
+  return allRows.filter(function(r){
+    return r.textContent.toLowerCase().includes(q);
+  });
+}
+
+document.getElementById("searchBox").addEventListener("input", function(){
+  renderPage(1);
+});
+
+if (document.getElementById("tableBody")) init();
+</script>
+</body>
+</html>

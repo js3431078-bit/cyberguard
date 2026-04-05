@@ -1,0 +1,8 @@
+flask
+langdetect
+werkzeug
+python-dotenv
+groq
+google-genai
+Pillow
+gunicorn

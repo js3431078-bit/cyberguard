@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="CyberGuard App Icon">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2027"/>
+      <stop offset="50%" stop-color="#1b3a57"/>
+      <stop offset="100%" stop-color="#2c5364"/>
+    </linearGradient>
+    <linearGradient id="shield" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+    <linearGradient id="lock" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e63946"/>
+      <stop offset="100%" stop-color="#c1121f"/>
+    </linearGradient>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e63946" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#e63946" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="innerglow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <clipPath id="rounded">
+      <rect width="512" height="512" rx="112" ry="112"/>
+    </clipPath>
+  </defs>
+
+  <!-- App icon background with rounded corners -->
+  <rect width="512" height="512" rx="112" ry="112" fill="url(#bg)"/>
+
+  <!-- Subtle radial glow at top -->
+  <ellipse cx="256" cy="120" rx="200" ry="120" fill="url(#glow)" opacity="0.6"/>
+
+  <!-- Subtle grid pattern for tech feel -->
+  <g stroke="rgba(255,255,255,0.04)" stroke-width="1" fill="none">
+    <line x1="0" y1="128" x2="512" y2="128"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+    <line x1="0" y1="384" x2="512" y2="384"/>
+    <line x1="128" y1="0" x2="128" y2="512"/>
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="384" y1="0" x2="384" y2="512"/>
+  </g>
+
+  <!-- ── SHIELD ── -->
+  <!-- Shield drop shadow -->
+  <path d="M256 88 L380 128 L380 256 Q380 360 256 408 Q132 360 132 256 L132 128 Z"
+        fill="rgba(0,0,0,0.3)" transform="translate(4,8)" filter="url(#shadow)"/>
+
+  <!-- Shield body -->
+  <path d="M256 88 L380 128 L380 256 Q380 360 256 408 Q132 360 132 256 L132 128 Z"
+        fill="url(#shield)" stroke="rgba(255,255,255,0.2)" stroke-width="2"/>
+
+  <!-- Shield inner highlight (top edge) -->
+  <path d="M256 100 L368 136 L368 256 Q368 350 256 395 Q144 350 144 256 L144 136 Z"
+        fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1.5"/>
+
+  <!-- ── LOCK BODY ── -->
+  <rect x="196" y="252" width="120" height="96" rx="16" ry="16"
+        fill="url(#lock)" filter="url(#innerglow)"/>
+
+  <!-- Lock body highlight -->
+  <rect x="196" y="252" width="120" height="40" rx="16" ry="16"
+        fill="rgba(255,255,255,0.12)"/>
+
+  <!-- ── LOCK SHACKLE ── -->
+  <path d="M216 252 L216 210 Q216 168 256 168 Q296 168 296 210 L296 252"
+        fill="none" stroke="#ffd166" stroke-width="22"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Shackle inner (cutout effect) -->
+  <path d="M216 252 L216 210 Q216 168 256 168 Q296 168 296 210 L296 252"
+        fill="none" stroke="#1b3a57" stroke-width="10"
+        stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- ── KEYHOLE ── -->
+  <circle cx="256" cy="292" r="18" fill="rgba(255,255,255,0.95)"/>
+  <rect x="249" y="292" width="14" height="28" rx="7" fill="rgba(255,255,255,0.95)"/>
+
+  <!-- ── CIRCUIT DOTS (decorative) ── -->
+  <g fill="#ffd166" opacity="0.5">
+    <circle cx="148" cy="180" r="4"/>
+    <circle cx="364" cy="180" r="4"/>
+    <circle cx="148" cy="320" r="4"/>
+    <circle cx="364" cy="320" r="4"/>
+  </g>
+  <g stroke="#ffd166" stroke-width="1.5" fill="none" opacity="0.25">
+    <line x1="148" y1="180" x2="180" y2="180"/>
+    <line x1="332" y1="180" x2="364" y2="180"/>
+    <line x1="148" y1="320" x2="180" y2="320"/>
+    <line x1="332" y1="320" x2="364" y2="320"/>
+  </g>
+
+  <!-- ── BOTTOM TEXT ── -->
+  <text x="256" y="460"
+        text-anchor="middle"
+        font-family="Segoe UI,Helvetica Neue,Arial,sans-serif"
+        font-size="36" font-weight="800"
+        fill="white" opacity="0.9"
+        letter-spacing="2">CG</text>
+
+  <!-- Bottom accent line under text -->
+  <rect x="216" y="468" width="80" height="3" rx="1.5" fill="#e63946" opacity="0.8"/>
+</svg>

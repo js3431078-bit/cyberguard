@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Track Complaint - Cybercrime Portal</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
+.page{max-width:640px;margin:48px auto;padding:0 20px 60px;}
+.track-card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(27,58,87,.1);overflow:hidden;}
+.track-header{background:linear-gradient(135deg,#1b3a57,#2c5364);padding:28px 32px;color:#fff;text-align:center;}
+.track-header h1{font-size:22px;font-weight:800;margin-bottom:6px;}
+.track-header p{font-size:13px;opacity:.8;}
+.track-body{padding:32px;}
+.track-form{display:flex;gap:10px;margin-bottom:24px;}
+.track-form input{flex:1;padding:12px 16px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:14px;background:#f8fafc;outline:none;transition:border .2s;}
+.track-form input:focus{border-color:#1b3a57;background:#fff;}
+.track-form button{padding:12px 22px;background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .2s;}
+.track-form button:hover{opacity:.9;}
+.error-msg{background:#fff5f5;border:1px solid #fecaca;color:#c1121f;padding:12px 16px;border-radius:9px;font-size:13px;margin-bottom:16px;}
+.result-card{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:24px;}
+.result-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #f0f4f8;font-size:13.5px;}
+.result-row:last-child{border:none;padding-bottom:0;}
+.result-row .lbl{color:#64748b;font-weight:600;}
+.result-row .val{color:#1e293b;font-weight:700;text-align:right;}
+.badge-pending{background:#fff7ed;color:#c2410c;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.badge-resolved{background:#f0fdf4;color:#15803d;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.badge-inprog{background:#eff6ff;color:#1d4ed8;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;}
+.tip-box{background:#eff6ff;border:1px solid #bfdbfe;border-radius:9px;padding:14px 16px;font-size:13px;color:#1d4ed8;margin-top:20px;}
+.back-link{display:inline-flex;align-items:center;gap:6px;color:#1b3a57;font-size:13px;font-weight:600;text-decoration:none;margin-bottom:24px;transition:color .2s;}
+.back-link:hover{color:#e63946;}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <h2>🛡️ Student Cybercrime Portal</h2>
+  <a href="/home">← Home</a>
+</div>
+
+<div class="page">
+  <a href="/home" class="back-link">← Back to Home</a>
+
+  <div class="track-card">
+    <div class="track-header">
+      <h1>🔍 Track Your Complaint</h1>
+      <p>Enter your complaint ID to check the current status</p>
+    </div>
+    <div class="track-body">
+
+      <form method="POST" action="/track">
+        <div class="track-form">
+          <input type="text" name="complaint_id" placeholder="Enter Complaint ID (e.g. 12)"
+            value="{{ request.form.get('complaint_id','') }}" required>
+          <button type="submit">Track →</button>
+        </div>
+      </form>
+
+      {% if error %}
+      <div class="error-msg">❌ {{ error }}</div>
+      {% endif %}
+
+      {% if result %}
+      <div class="result-card">
+        <div class="result-row">
+          <span class="lbl">Complaint ID</span>
+          <span class="val">#{{ result.id }}</span>
+        </div>
+        <div class="result-row">
+          <span class="lbl">Complainant</span>
+          <span class="val">{{ result.name or "—" }}</span>
+        </div>
+        <div class="result-row">
+          <span class="lbl">Crime Type</span>
+          <span class="val">{{ result.crime_type or "—" }}</span>
+        </div>
+        <div class="result-row">
+          <span class="lbl">Incident Date</span>
+          <span class="val">{{ result.date or "—" }}</span>
+        </div>
+        <div class="result-row">
+          <span class="lbl">Submitted On</span>
+          <span class="val">{{ result.submitted or "—" }}</span>
+        </div>
+        <div class="result-row">
+          <span class="lbl">Current Status</span>
+          <span class="val">
+            {% if result.status == "Pending" %}<span class="badge-pending">⏳ Pending</span>
+            {% elif result.status == "Resolved" %}<span class="badge-resolved">✅ Resolved</span>
+            {% else %}<span class="badge-inprog">🔄 {{ result.status }}</span>{% endif %}
+          </span>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        💡 <strong>What happens next?</strong> Our cyber cell team reviews complaints within 24–48 hours.
+        For urgent cases, call <strong>1930</strong> directly.
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>© 2026 <strong>Student Cybercrime Portal</strong> | Helpline: <strong>1930</strong></p>
+</footer>
+</body>
+</html>

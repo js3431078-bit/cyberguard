@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>About Us - AI Cybercrime Portal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1b3a57">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CyberGuard">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:#1e293b;}
+
+.navbar{background:#1b3a57;padding:14px 30px;display:flex;justify-content:space-between;align-items:center;}
+.navbar h2{font-size:17px;font-weight:700;color:#ffd166;}
+.navbar a{color:#ffd166;font-size:13px;text-decoration:none;font-weight:600;}
+
+/* hero */
+.hero{background:linear-gradient(135deg,#0f2027,#1b3a57,#2c5364);color:#fff;text-align:center;padding:60px 20px;}
+.hero .badge{display:inline-block;background:rgba(230,57,70,.2);border:1px solid rgba(230,57,70,.5);
+  color:#fca5a5;font-size:11px;font-weight:700;padding:4px 14px;border-radius:20px;
+  text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px;}
+.hero h1{font-size:32px;font-weight:800;margin-bottom:10px;}
+.hero p{font-size:15px;color:#cbd5e1;max-width:580px;margin:0 auto;}
+
+.page{max-width:1080px;margin:0 auto;padding:36px 20px;}
+
+.back{display:inline-flex;align-items:center;gap:6px;background:#1b3a57;color:#fff;
+  padding:9px 18px;border-radius:7px;text-decoration:none;font-size:13px;font-weight:600;
+  margin-bottom:28px;transition:background .2s;}
+.back:hover{background:#0f2233;}
+
+/* mission */
+.mission{background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;border-radius:14px;
+  padding:28px 32px;margin-bottom:32px;display:flex;align-items:center;gap:24px;
+  box-shadow:0 4px 20px rgba(230,57,70,.3);}
+.mission .m-ico{font-size:52px;flex-shrink:0;}
+.mission h2{font-size:20px;font-weight:800;margin-bottom:6px;}
+.mission p{font-size:13.5px;opacity:.92;line-height:1.7;}
+
+/* section title */
+.sec{font-size:17px;font-weight:700;color:#1b3a57;margin-bottom:16px;
+  padding-bottom:8px;border-bottom:3px solid #e63946;display:inline-block;}
+
+/* feature grid */
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px;margin-bottom:32px;}
+.fcard{background:#fff;border-radius:12px;padding:22px 20px;box-shadow:0 2px 10px rgba(0,0,0,.07);
+  border-top:4px solid #1b3a57;transition:transform .2s,box-shadow .2s;}
+.fcard:hover{transform:translateY(-3px);box-shadow:0 6px 18px rgba(0,0,0,.12);}
+.fcard .f-ico{font-size:32px;margin-bottom:10px;}
+.fcard h3{font-size:14px;font-weight:700;color:#1b3a57;margin-bottom:6px;}
+.fcard p{font-size:12.5px;color:#64748b;line-height:1.6;}
+
+/* two col */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:32px;}
+.card{background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.card h3{font-size:15px;font-weight:700;color:#1b3a57;margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:2px solid #f1f5f9;}
+.list-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #f8fafc;font-size:13px;color:#334155;}
+.list-item:last-child{border:none;}
+.list-item .li-ico{font-size:16px;flex-shrink:0;margin-top:1px;}
+
+/* stats */
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:32px;}
+.stat{background:#fff;border-radius:12px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;}
+.stat .s-num{font-size:30px;font-weight:800;color:#e63946;line-height:1;}
+.stat .s-lbl{font-size:12px;color:#64748b;margin-top:5px;font-weight:500;}
+
+/* how it works */
+.steps{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;margin-bottom:32px;}
+.step{background:#fff;border-radius:12px;padding:22px 18px;box-shadow:0 2px 10px rgba(0,0,0,.07);text-align:center;position:relative;}
+.step .s-num{width:36px;height:36px;background:#e63946;color:#fff;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;
+  margin:0 auto 12px;}
+.step h3{font-size:13.5px;font-weight:700;color:#1b3a57;margin-bottom:6px;}
+.step p{font-size:12px;color:#64748b;line-height:1.5;}
+
+/* cta */
+.cta{background:linear-gradient(135deg,#1b3a57,#2c5364);color:#fff;border-radius:14px;
+  padding:32px;text-align:center;margin-bottom:32px;}
+.cta h2{font-size:22px;font-weight:800;margin-bottom:8px;}
+.cta p{font-size:13.5px;opacity:.85;margin-bottom:20px;}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.cta-btn{display:inline-flex;align-items:center;gap:7px;padding:11px 22px;border-radius:8px;
+  font-size:13.5px;font-weight:700;text-decoration:none;transition:opacity .2s;}
+.cta-btn:hover{opacity:.88;}
+.cta-btn-red{background:#e63946;color:#fff;}
+.cta-btn-w{background:#fff;color:#1b3a57;}
+
+@media(max-width:680px){
+  .two{grid-template-columns:1fr;}
+  .mission{flex-direction:column;text-align:center;}
+  .hero h1{font-size:24px;}
+}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="navbar-logo-wrap">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
+  </div>
+  <a href="/home">← Back to Home</a>
+</div>
+
+<div class="hero">
+  <div class="badge">🏛️ Government of India Initiative</div>
+  <h1>AI Cybercrime Reporting System</h1>
+  <p>A secure, AI-powered platform to report, track, and resolve cybercrime incidents across India — available 24/7.</p>
+</div>
+
+<div class="page">
+
+  <a href="/home" class="back">← Back to Home</a>
+
+  <!-- Mission -->
+  <div class="mission">
+    <div class="m-ico">🎯</div>
+    <div>
+      <h2>Our Mission</h2>
+      <p>To provide every citizen of India with a fast, secure, and intelligent platform to report cybercrime incidents, receive AI-powered guidance, and connect with the right law enforcement authorities — ensuring justice is accessible to all, anytime, anywhere.</p>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="sec">📊 Portal at a Glance</div>
+  <div class="stats">
+    <div class="stat"><div class="s-num">24/7</div><div class="s-lbl">Always Available</div></div>
+    <div class="stat"><div class="s-num">1930</div><div class="s-lbl">National Helpline</div></div>
+    <div class="stat"><div class="s-num">28+</div><div class="s-lbl">States Covered</div></div>
+    <div class="stat"><div class="s-num">8+</div><div class="s-lbl">Crime Categories</div></div>
+    <div class="stat"><div class="s-num">AI</div><div class="s-lbl">Powered Detection</div></div>
+    <div class="stat"><div class="s-num">100%</div><div class="s-lbl">Free to Use</div></div>
+  </div>
+
+  <!-- Features -->
+  <div class="sec">⚡ Key Features</div>
+  <div class="fgrid">
+    <div class="fcard">
+      <div class="f-ico">🤖</div>
+      <h3>AI Crime Detection</h3>
+      <p>Our AI engine automatically analyzes your complaint and identifies the type of cybercrime with high accuracy.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">💬</div>
+      <h3>AI Chatbot Support</h3>
+      <p>CyberBot provides real-time guidance in English and Hindi, helping you understand what steps to take immediately.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">📋</div>
+      <h3>Online Complaint Filing</h3>
+      <p>File detailed complaints with evidence uploads (images/videos) directly from your device — no paperwork needed.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">🔒</div>
+      <h3>Secure & Confidential</h3>
+      <p>All data is encrypted and stored securely. Your personal information is never shared without authorization.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">📊</div>
+      <h3>Admin Dashboard</h3>
+      <p>Law enforcement officials can view, manage, and update complaint statuses through a dedicated admin panel.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">🌐</div>
+      <h3>Bilingual Support</h3>
+      <p>The AI chatbot responds in both English and Hindi, making the portal accessible to a wider audience.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">📞</div>
+      <h3>Helpline Integration</h3>
+      <p>Direct access to national and state-level cybercrime helplines, women helplines, and student support numbers.</p>
+    </div>
+    <div class="fcard">
+      <div class="f-ico">📍</div>
+      <h3>Location Assistance</h3>
+      <p>Helps users locate the nearest cyber crime cell using GPS-based location detection and Google Maps integration.</p>
+    </div>
+  </div>
+
+  <!-- What we handle + Who can use -->
+  <div class="two">
+    <div class="card">
+      <h3>🚨 Crimes We Handle</h3>
+      <div class="list-item"><div class="li-ico">💳</div>Online Financial Fraud & UPI Scams</div>
+      <div class="list-item"><div class="li-ico">🎣</div>Phishing & Identity Theft</div>
+      <div class="list-item"><div class="li-ico">💻</div>Hacking & Unauthorized Access</div>
+      <div class="list-item"><div class="li-ico">😡</div>Cyberbullying & Online Harassment</div>
+      <div class="list-item"><div class="li-ico">🦠</div>Malware & Ransomware Attacks</div>
+      <div class="list-item"><div class="li-ico">📰</div>Fake News & Deepfakes</div>
+      <div class="list-item"><div class="li-ico">🪪</div>Impersonation & Fake Profiles</div>
+      <div class="list-item"><div class="li-ico">👶</div>Child Online Exploitation</div>
+    </div>
+    <div class="card">
+      <h3>👥 Who Can Use This Portal</h3>
+      <div class="list-item"><div class="li-ico">🧑</div>Any Indian citizen who is a victim of cybercrime</div>
+      <div class="list-item"><div class="li-ico">🎓</div>Students facing cyber bullying or online harassment</div>
+      <div class="list-item"><div class="li-ico">👩</div>Women facing online abuse, stalking or threats</div>
+      <div class="list-item"><div class="li-ico">🏦</div>Victims of online banking or UPI fraud</div>
+      <div class="list-item"><div class="li-ico">🏢</div>Businesses affected by data breaches or hacking</div>
+      <div class="list-item"><div class="li-ico">👮</div>Law enforcement officials managing cases</div>
+      <div class="list-item"><div class="li-ico">👨‍👩‍👧</div>Parents concerned about child online safety</div>
+      <div class="list-item"><div class="li-ico">🧓</div>Senior citizens targeted by online scams</div>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="sec">🔄 How It Works</div>
+  <div class="steps">
+    <div class="step">
+      <div class="s-num">1</div>
+      <h3>Register & Login</h3>
+      <p>Create a free account with your name, email and phone number to get started.</p>
+    </div>
+    <div class="step">
+      <div class="s-num">2</div>
+      <h3>Describe the Incident</h3>
+      <p>Fill in the complaint form with details of the cybercrime you experienced.</p>
+    </div>
+    <div class="step">
+      <div class="s-num">3</div>
+      <h3>AI Analysis</h3>
+      <p>Our AI engine instantly analyzes your complaint and identifies the crime type and threat level.</p>
+    </div>
+    <div class="step">
+      <div class="s-num">4</div>
+      <h3>Upload Evidence</h3>
+      <p>Attach screenshots, images or videos as evidence to strengthen your complaint.</p>
+    </div>
+    <div class="step">
+      <div class="s-num">5</div>
+      <h3>Submit Complaint</h3>
+      <p>Submit your complaint securely. It is forwarded to the relevant cyber crime authority.</p>
+    </div>
+    <div class="step">
+      <div class="s-num">6</div>
+      <h3>Track & Resolve</h3>
+      <p>Monitor your complaint status through your dashboard until it is resolved.</p>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta">
+    <h2>Ready to Report a Cybercrime?</h2>
+    <p>Don't stay silent. Report it now and let our AI-powered system guide you through the process.</p>
+    <div class="cta-btns">
+      <a href="/complaint" class="cta-btn cta-btn-red">📋 File a Complaint</a>
+      <a href="/contact" class="cta-btn cta-btn-w">📞 View Helplines</a>
+      <a href="/home" class="cta-btn cta-btn-w">🏠 Go to Home</a>
+    </div>
+  </div>
+
+  <footer>
+    <p>© 2026 <strong>AI Cybercrime Reporting System</strong> | Government Cyber Security Initiative &nbsp;|&nbsp;
+    Helpline: <strong>1930</strong></p>
+  </footer>
+
+</div>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+</body>
+</html>

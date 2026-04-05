@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="CyberGuard">
+  <defs>
+    <linearGradient id="bg2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f2027"/>
+      <stop offset="100%" stop-color="#1b3a57"/>
+    </linearGradient>
+    <linearGradient id="lk2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e63946"/>
+      <stop offset="100%" stop-color="#c1121f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rounded square background -->
+  <rect width="64" height="64" rx="14" ry="14" fill="url(#bg2)"/>
+
+  <!-- Shield -->
+  <path d="M32 10 L50 16 L50 34 Q50 46 32 53 Q14 46 14 34 L14 16 Z"
+        fill="rgba(255,255,255,0.12)" stroke="rgba(255,255,255,0.2)" stroke-width="0.8"/>
+
+  <!-- Lock body -->
+  <rect x="22" y="32" width="20" height="15" rx="3" fill="url(#lk2)"/>
+
+  <!-- Lock shackle -->
+  <path d="M26 32 L26 26 Q26 20 32 20 Q38 20 38 26 L38 32"
+        fill="none" stroke="#ffd166" stroke-width="3.2" stroke-linecap="round"/>
+  <path d="M26 32 L26 26 Q26 20 32 20 Q38 20 38 26 L38 32"
+        fill="none" stroke="#1b3a57" stroke-width="1.4" stroke-linecap="round"/>
+
+  <!-- Keyhole -->
+  <circle cx="32" cy="38.5" r="2.8" fill="white" opacity="0.95"/>
+  <rect x="30.8" y="38.5" width="2.4" height="4.5" rx="1.2" fill="white" opacity="0.95"/>
+
+  <!-- Bottom accent -->
+  <rect x="24" y="56" width="16" height="2.5" rx="1.2" fill="#e63946" opacity="0.9"/>
+</svg>

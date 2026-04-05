@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Login - Student Cybercrime Portal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1b3a57">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CyberGuard">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="dark">
+
+<div class="auth-container">
+<div class="auth-box">
+
+  <div class="auth-logo">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard" style="height:48px;width:auto;margin-bottom:4px;">
+  </div>
+  <h1>Welcome Back</h1>
+  <p>Sign in to report and track your cyber incidents</p>
+
+  <div id="loginStatus" class="status-msg" style="min-height:18px;"></div>
+
+  <form id="loginForm" onsubmit="doLogin(event)">
+    <input type="text" id="username" name="username" placeholder="College Email / Admin ID" required>
+    <input type="password" id="password" name="password" placeholder="Password" required>
+    <div class="show-password">
+      <input type="checkbox" onclick="showPass()"> Show Password
+    </div>
+    <button type="submit" id="loginBtn">Login →</button>
+  </form>
+
+  <div class="auth-links">
+    <a href="/forgot-password">Forgot Password?</a>
+    <a href="/register">New Student? Register Here</a>
+  </div>
+
+</div>
+</div>
+
+<script>
+function showPass() {
+  var x = document.getElementById("password");
+  x.type = x.type === "password" ? "text" : "password";
+}
+function doLogin(e) {
+  e.preventDefault();
+  var btn = document.getElementById("loginBtn");
+  var st  = document.getElementById("loginStatus");
+  btn.textContent = "Signing in...";
+  btn.disabled = true;
+  st.textContent = "";
+  st.style.color = "";
+  fetch("/login", { method:"POST", body: new FormData(document.getElementById("loginForm")) })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.status === "success") {
+      st.textContent = "✅ " + d.message;
+      st.style.color = "#16a34a";
+      setTimeout(function(){ window.location.href = d.role === "admin" ? "/dashboard" : "/home"; }, 1000);
+    } else {
+      st.textContent = "❌ " + d.message;
+      st.style.color = "#e63946";
+      btn.textContent = "Login →";
+      btn.disabled = false;
+    }
+  })
+  .catch(function(){
+    st.textContent = "❌ Server error. Try again.";
+    st.style.color = "#e63946";
+    btn.textContent = "Login →";
+    btn.disabled = false;
+  });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+</body>
+</html>

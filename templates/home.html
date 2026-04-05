@@ -1,0 +1,829 @@
+           <!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Student Cybercrime Portal</title>
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1b3a57">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CyberGuard">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="/static/logo-icon.svg">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+/* ── HOME PAGE OVERRIDES ── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;color:#1e293b;}
+
+/* NAVBAR */
+.navbar{
+  background:linear-gradient(135deg,#0f2027,#1b3a57);
+  padding:0 32px;height:64px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 2px 16px rgba(0,0,0,.25);
+  position:sticky;top:0;z-index:200;
+}
+.navbar h1{font-size:17px;font-weight:800;color:#ffd166;display:flex;align-items:center;gap:8px;}
+.navbar ul{display:flex;gap:6px;list-style:none;align-items:center;}
+.navbar ul li a{
+  color:#e2e8f0;text-decoration:none;font-size:13px;font-weight:600;
+  padding:7px 16px;border-radius:8px;transition:all .2s;
+}
+.navbar ul li a:hover{background:rgba(255,255,255,.15);color:#fff;}
+.navbar ul li a.nav-cta{
+  background:#e63946;color:#fff;border-radius:8px;
+  box-shadow:0 2px 8px rgba(230,57,70,.4);
+}
+.navbar ul li a.nav-cta:hover{background:#c1121f;}
+
+/* HERO */
+.hero{
+  background:linear-gradient(135deg,#0f2027 0%,#1b3a57 50%,#2c5364 100%);
+  color:#fff;text-align:center;
+  padding:80px 24px 70px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;inset:0;
+  pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(230,57,70,.2);border:1px solid rgba(230,57,70,.4);
+  color:#fca5a5;font-size:12px;font-weight:700;
+  padding:5px 14px;border-radius:20px;margin-bottom:20px;
+  letter-spacing:.4px;text-transform:uppercase;
+}
+.hero h1{
+  font-size:42px;font-weight:900;line-height:1.15;
+  margin-bottom:16px;
+  background:linear-gradient(135deg,#fff 60%,#ffd166);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero p{
+  font-size:16px;color:#94a3b8;max-width:560px;
+  margin:0 auto 32px;line-height:1.7;
+}
+.hero-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;position:relative;z-index:1;}
+.hbtn{
+  padding:14px 28px;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;border:none;display:inline-flex;align-items:center;gap:8px;
+  transition:all .22s;text-decoration:none;
+}
+.hbtn.primary{
+  background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;
+  box-shadow:0 4px 16px rgba(230,57,70,.45);
+}
+.hbtn.primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(230,57,70,.5);}
+.hbtn.secondary{
+  background:rgba(255,255,255,.1);color:#fff;
+  border:1.5px solid rgba(255,255,255,.3);backdrop-filter:blur(4px);
+}
+.hbtn.secondary:hover{background:rgba(255,255,255,.2);transform:translateY(-2px);}
+.hbtn.success{
+  background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;
+  box-shadow:0 4px 16px rgba(22,163,74,.4);
+}
+.hbtn.success:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(22,163,74,.45);}
+
+/* STATS STRIP */
+.stats-strip{
+  background:#fff;
+  display:flex;justify-content:center;gap:0;
+  box-shadow:0 2px 12px rgba(0,0,0,.08);
+}
+.sstat{
+  flex:1;max-width:220px;text-align:center;
+  padding:22px 16px;border-right:1px solid #f0f4f8;
+}
+.sstat:last-child{border-right:none;}
+.sstat .snum{font-size:28px;font-weight:900;color:#1b3a57;line-height:1;}
+.sstat .slbl{font-size:12px;color:#94a3b8;font-weight:600;margin-top:4px;text-transform:uppercase;letter-spacing:.4px;}
+
+/* INFO CARDS */
+.info-section{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:20px;padding:48px 32px;max-width:1100px;margin:auto;
+}
+.info-card{
+  background:#fff;padding:28px 24px;border-radius:14px;
+  box-shadow:0 2px 12px rgba(0,0,0,.07);
+  border-top:4px solid #1b3a57;
+  transition:transform .22s,box-shadow .22s;
+}
+.info-card:hover{transform:translateY(-5px);box-shadow:0 8px 28px rgba(0,0,0,.12);}
+.info-card .ic-ico{
+  width:48px;height:48px;border-radius:12px;
+  background:linear-gradient(135deg,#1b3a57,#2c5364);
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;margin-bottom:14px;
+}
+.info-card h3{color:#1b3a57;font-size:15px;font-weight:700;margin-bottom:8px;}
+.info-card p{color:#64748b;font-size:13px;line-height:1.6;}
+
+/* MAIN LAYOUT */
+.main-layout{
+  display:grid;grid-template-columns:1fr 380px;
+  gap:28px;padding:0 32px 48px;max-width:1100px;margin:auto;
+}
+.left-content h2{
+  font-size:20px;font-weight:800;color:#1b3a57;
+  margin-bottom:18px;display:flex;align-items:center;gap:8px;
+}
+.awareness-box{
+  background:#fff;padding:18px 20px;border-radius:12px;margin-bottom:12px;
+  box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid #e63946;
+  transition:transform .2s,box-shadow .2s,border-color .2s;
+}
+.awareness-box:hover{transform:translateX(4px);box-shadow:0 4px 16px rgba(0,0,0,.1);border-left-color:#1b3a57;}
+.awareness-box h3{font-size:14px;font-weight:700;color:#1b3a57;margin-bottom:5px;}
+.awareness-box p{font-size:13px;color:#64748b;line-height:1.6;}
+
+/* RIGHT FORM CARD */
+.right-form-wrap{position:sticky;top:80px;}
+.score-card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(27,58,87,.12);overflow:hidden;}
+.score-header{background:linear-gradient(135deg,#1b3a57,#2c5364);padding:22px 24px;color:#fff;}
+.score-header h2{font-size:16px;font-weight:800;margin-bottom:4px;}
+.score-header p{font-size:12px;opacity:.75;}
+.score-body{padding:20px 22px;}
+.sq{margin-bottom:12px;}
+.sq p{font-size:11px;font-weight:700;color:#64748b;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+.qf-input{
+  width:100%;padding:9px 12px;
+  border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;background:#f8fafc;
+  font-family:inherit;outline:none;
+  transition:border .2s,background .2s;
+}
+.qf-input:focus{border-color:#1b3a57;background:#fff;}
+.qf-radio{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:6px 12px;border-radius:20px;
+  border:1.5px solid #e2e8f0;background:#f8fafc;
+  font-size:12.5px;font-weight:600;color:#475569;
+  cursor:pointer;transition:all .18s;
+}
+.qf-radio:has(input:checked){border-color:#1b3a57;background:#eff6ff;color:#1b3a57;}
+.score-btn{
+  width:100%;padding:13px;margin-top:8px;
+  background:linear-gradient(135deg,#e63946,#c1121f);
+  color:#fff;border:none;border-radius:10px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:opacity .2s,transform .1s;
+  box-shadow:0 3px 12px rgba(230,57,70,.35);
+}
+.score-btn:hover{opacity:.9;transform:translateY(-1px);}
+
+/* HELPLINE STRIP */
+.helpline-strip{
+  background:linear-gradient(135deg,#e63946,#c1121f);
+  padding:28px 32px;text-align:center;color:#fff;
+}
+.helpline-strip h3{font-size:18px;font-weight:800;margin-bottom:16px;}
+.hl-nums{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;}
+.hl-num{
+  background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+  padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;
+  display:flex;align-items:center;gap:8px;
+}
+
+/* FOOTER */
+footer{
+  background:linear-gradient(135deg,#0f2027,#1b3a57);
+  color:#94a3b8;text-align:center;padding:24px 20px;font-size:13px;
+}
+footer strong{color:#ffd166;}
+
+@media(max-width:900px){
+  .main-layout{grid-template-columns:1fr;padding:0 16px 32px;}
+  .info-section{grid-template-columns:1fr 1fr;padding:28px 16px;}
+  .score-card{position:static;}
+  .hero h1{font-size:28px;}
+  .stats-strip{flex-wrap:wrap;}
+  .sstat{min-width:50%;}
+}
+@media(max-width:560px){
+  .info-section{grid-template-columns:1fr;}
+  .hero h1{font-size:22px;}
+  .navbar h1{font-size:14px;}
+  .hl-nums{flex-direction:column;align-items:center;}
+}
+</style>
+</head>
+<body>
+
+<!-- Navbar -->
+<div class="navbar">
+<div class="navbar-logo-wrap">
+  <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
+</div>
+<ul>
+<li><a href="/about">About</a></li>
+<li><a href="/contact">Help & Helplines</a></li>
+<li><a href="/track">🔍 Track Complaint</a></li>
+<li><a href="/complaint" class="nav-cta">📋 Report Incident</a></li>
+<li><a href="/logout">Logout</a></li>
+</ul>
+</div>
+
+<!-- Hero -->
+<section id="home" class="hero">
+  <img src="{{ url_for('static', filename='app-icon.svg') }}" alt="CyberGuard"
+       style="width:72px;height:72px;border-radius:18px;margin-bottom:16px;box-shadow:0 8px 32px rgba(0,0,0,.4);position:relative;">
+  <div class="hero-badge">🔐 AI-Powered Cybercrime Portal</div>
+  <h1>Stay Safe.<br>Report Smart.<br>Act Fast.</h1>
+  <p>Facing online harassment, academic fraud, or cyber bullying? Get AI-powered guidance and report incidents instantly — built for college students.</p>
+  <div class="hero-btns">
+    <button class="hbtn primary" onclick="toggleChat()">🤖 Ask CyberBot</button>
+    <button class="hbtn secondary" id="mapsBtn" onclick="openMaps()">📍 Find Nearest Cyber Cell</button>
+    <button class="hbtn success" onclick="window.location.href='/safety-score'">🛡️ Check Safety Score</button>
+  </div>
+</section>
+
+<!-- Stats Strip -->
+<div class="stats-strip">
+  <div class="sstat"><div class="snum">1930</div><div class="slbl">Cyber Crime Helpline</div></div>
+  <div class="sstat"><div class="snum">24/7</div><div class="slbl">Student Support</div></div>
+  <div class="sstat"><div class="snum">AI</div><div class="slbl">Instant Crime Detection</div></div>
+  <div class="sstat"><div class="snum">100%</div><div class="slbl">Secure & Confidential</div></div>
+</div>
+
+<!-- Info Cards -->
+<section class="info-section">
+  <div class="info-card">
+    <div class="ic-ico">🕐</div>
+    <h3>24/7 Student Support</h3>
+    <p>Report cyber incidents anytime — day or night, from your hostel, campus or home.</p>
+  </div>
+  <div class="info-card" style="border-top-color:#e63946;">
+    <div class="ic-ico" style="background:linear-gradient(135deg,#e63946,#c1121f);">🤖</div>
+    <h3>AI Crime Detection</h3>
+    <p>Our AI instantly identifies the type of cybercrime from your description and guides you.</p>
+  </div>
+  <div class="info-card" style="border-top-color:#16a34a;">
+    <div class="ic-ico" style="background:linear-gradient(135deg,#16a34a,#15803d);">⚡</div>
+    <h3>Fast Response</h3>
+    <p>Your complaint is forwarded to college authorities and cyber cells immediately.</p>
+  </div>
+</section>
+
+<!-- Main Layout -->
+<section class="main-layout">
+
+<!-- Left: Awareness Tips -->
+<div class="left-content">
+  <h2>🔒 Student Cyber Safety Tips</h2>
+  <div class="awareness-box">
+    <h3>🎣 Phishing on College Portals</h3>
+    <p>Fake login pages mimicking your college portal steal your credentials. Always check the URL before logging in.</p>
+  </div>
+  <div class="awareness-box">
+    <h3>😡 Cyber Bullying & Harassment</h3>
+    <p>Online bullying via WhatsApp groups, Instagram or Discord is a crime. Screenshot and report immediately.</p>
+  </div>
+  <div class="awareness-box">
+    <h3>💸 Fake Scholarship / Job Scams</h3>
+    <p>Never pay fees for "guaranteed" scholarships or internships. Verify through official college channels only.</p>
+  </div>
+  <div class="awareness-box">
+    <h3>🔐 Social Media Safety</h3>
+    <p>Keep your profiles private. Never share your location, college ID or personal details with strangers online.</p>
+  </div>
+  <div class="awareness-box" style="border-left-color:#7c3aed;">
+    <h3>🦠 Malware & Ransomware</h3>
+    <p>Never download files from unknown sources. Keep your antivirus updated and avoid pirated software.</p>
+  </div>
+</div>
+
+<!-- Right: Quick Incident Form -->
+<div class="right-form-wrap">
+<div class="score-card">
+  <div class="score-header">
+    <h2>📋 Student Incident Report</h2>
+    <p>Fill in your details to proceed to the full complaint form</p>
+  </div>
+  <div class="score-body">
+    <form id="quickForm" onsubmit="saveAndNext(event)">
+
+      <!-- Row: Name + Phone -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="sq">
+          <p>Full Name <span style="color:#e63946;">*</span></p>
+          <input type="text" id="qf_name" placeholder="Your full name" required class="qf-input">
+        </div>
+        <div class="sq">
+          <p>Mobile Number <span style="color:#e63946;">*</span></p>
+          <input type="tel" id="qf_phone" placeholder="10-digit number" maxlength="10"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')" required class="qf-input">
+        </div>
+      </div>
+
+      <!-- Email -->
+      <div class="sq">
+        <p>College Email <span style="color:#e63946;">*</span></p>
+        <input type="email" id="qf_email" placeholder="yourname@college.edu" required class="qf-input">
+      </div>
+
+      <!-- College + Location -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="sq">
+          <p>College / University <span style="color:#e63946;">*</span></p>
+          <input type="text" id="qf_college" placeholder="College name" required class="qf-input">
+        </div>
+        <div class="sq">
+          <p>City / Location</p>
+          <input type="text" id="qf_location" placeholder="Your city" class="qf-input">
+        </div>
+      </div>
+
+      <!-- Course + Year -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="sq">
+          <p>Course / Stream</p>
+          <select id="qf_course" class="qf-input">
+            <option value="">-- Select Course --</option>
+            <option>B.Tech / B.E.</option>
+            <option>BCA / MCA</option>
+            <option>B.Sc / M.Sc</option>
+            <option>BBA / MBA</option>
+            <option>B.Com / M.Com</option>
+            <option>BA / MA</option>
+            <option>Law (LLB / LLM)</option>
+            <option>Medical (MBBS / BDS)</option>
+            <option>Diploma</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="sq">
+          <p>Year of Study</p>
+          <select id="qf_year" class="qf-input">
+            <option value="">-- Select Year --</option>
+            <option>1st Year</option>
+            <option>2nd Year</option>
+            <option>3rd Year</option>
+            <option>4th Year</option>
+            <option>5th Year</option>
+            <option>Postgraduate</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Preferred Contact -->
+      <div class="sq">
+        <p>Preferred Contact Method</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;">
+          <label class="qf-radio"><input type="radio" name="qf_contact" value="Phone" checked> 📞 Phone</label>
+          <label class="qf-radio"><input type="radio" name="qf_contact" value="Email"> 📧 Email</label>
+          <label class="qf-radio"><input type="radio" name="qf_contact" value="WhatsApp"> 💬 WhatsApp</label>
+        </div>
+      </div>
+
+      <!-- Nearest Cyber Cell Locator -->
+      <div class="sq">
+        <p>Find Nearest Cyber Cell</p>
+        <select id="qf_state" class="qf-input" onchange="showCyberCell(this.value)">
+          <option value="">-- Select your State --</option>
+          <option value="MH">Maharashtra</option>
+          <option value="DL">Delhi</option>
+          <option value="KA">Karnataka</option>
+          <option value="TN">Tamil Nadu</option>
+          <option value="GJ">Gujarat</option>
+          <option value="RJ">Rajasthan</option>
+          <option value="UP">Uttar Pradesh</option>
+          <option value="WB">West Bengal</option>
+          <option value="TS">Telangana</option>
+          <option value="PB">Punjab</option>
+          <option value="MP">Madhya Pradesh</option>
+          <option value="HR">Haryana</option>
+          <option value="KL">Kerala</option>
+          <option value="AP">Andhra Pradesh</option>
+          <option value="BR">Bihar</option>
+        </select>
+        <div id="cyber_cell_card" style="display:none;margin-top:10px;padding:11px 13px;border-radius:9px;font-size:12.5px;line-height:1.8;background:#f0fdf4;border-left:3px solid #16a34a;color:#14532d;"></div>
+      </div>
+
+      <!-- Quick Help Finder -->
+      <div class="sq">
+        <p>What are you facing right now?</p>
+        <select id="qf_facing" class="qf-input" onchange="showHelpCard(this.value)">
+          <option value="">-- Select your situation --</option>
+          <option value="fraud">💸 Money was deducted / UPI fraud</option>
+          <option value="hack">🔓 My account was hacked</option>
+          <option value="bully">😡 Someone is harassing / bullying me</option>
+          <option value="scam">📧 I received a suspicious link / call</option>
+          <option value="identity">🪪 Someone is using my identity</option>
+          <option value="safe">✅ I'm safe, just want to report</option>
+        </select>
+        <div id="help_card" style="display:none;margin-top:10px;padding:10px 13px;border-radius:9px;font-size:12.5px;line-height:1.7;"></div>
+      </div>
+
+      <button type="submit" class="score-btn">🚀 Save & Continue to Report →</button>
+    </form>
+  </div>
+</div>
+</div>
+
+</section>
+
+<!-- PWA Install Banner -->
+<div id="installBanner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:9999;background:linear-gradient(135deg,#1b3a57,#2c5364);color:#fff;padding:14px 20px;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.4);align-items:center;gap:14px;max-width:360px;width:90%;border:1px solid rgba(255,255,255,.15);">
+  <img src="/static/icons/icon-72.png" style="width:40px;height:40px;border-radius:10px;flex-shrink:0;" alt="CyberGuard">
+  <div style="flex:1;">
+    <div style="font-size:13px;font-weight:700;">Install CyberGuard</div>
+    <div style="font-size:11px;opacity:.75;">Add to Home Screen for quick access</div>
+  </div>
+  <button onclick="installApp()" style="background:#e63946;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">Install</button>
+  <button onclick="document.getElementById('installBanner').style.display='none'" style="background:rgba(255,255,255,.1);color:#fff;border:none;width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;flex-shrink:0;">✕</button>
+</div>
+
+<!-- Helpline Strip -->
+<div class="helpline-strip">
+  <h3>📞 Emergency Helplines</h3>
+  <div class="hl-nums">
+    <div class="hl-num">🚨 Cyber Crime: <strong>1930</strong></div>
+    <div class="hl-num">👩 Women Helpline: <strong>1091</strong></div>
+    <div class="hl-num">👶 Child Helpline: <strong>1098</strong></div>
+    <div class="hl-num">🚔 Police: <strong>100</strong></div>
+    <div class="hl-num">📱 iCall Student: <strong>9152987821</strong></div>
+  </div>
+</div>
+
+<!-- Footer -->
+<footer>
+  <p>© 2026 <strong>Student Cybercrime Portal</strong> | Protecting College Students Online | Helpline: <strong>1930</strong> | iCall: <strong>9152987821</strong></p>
+</footer>
+
+<!-- ========== CHATBOT MODAL ========== -->
+<style>
+#chatOverlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(10,20,40,0.6); z-index: 1000;
+    align-items: center; justify-content: center; padding: 16px;
+}
+#chatOverlay.open { display: flex; }
+#chatWindow {
+    background: #fff; border-radius: 20px;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+    width: 100%; max-width: 480px; height: 580px;
+    display: flex; flex-direction: column; overflow: hidden;
+    animation: popIn .22s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn { from{opacity:0;transform:scale(.88) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+#chatHeader {
+    background: linear-gradient(135deg, #1b3a57 0%, #e63946 100%);
+    color: white; padding: 16px 20px;
+    display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
+}
+#chatHeader .ch-left { display:flex; align-items:center; gap:10px; }
+#chatHeader .ch-avatar {
+    width:38px; height:38px; background:rgba(255,255,255,0.2);
+    border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:18px;
+}
+#chatHeader .ch-info h3 { font-size:15px; font-weight:700; margin:0; }
+#chatHeader .ch-info p  { font-size:11px; opacity:.8; margin:2px 0 0; }
+#chatHeader .ch-close {
+    background:rgba(255,255,255,0.15); border:none; color:white;
+    width:30px; height:30px; border-radius:50%; cursor:pointer;
+    font-size:16px; display:flex; align-items:center; justify-content:center; transition:background .2s;
+}
+#chatHeader .ch-close:hover { background:rgba(255,255,255,0.3); }
+
+#chatMessages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f0f4f8;
+}
+#chatMessages::-webkit-scrollbar { width: 4px; }
+#chatMessages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+.msg-bot, .msg-user {
+    max-width: 80%;
+    padding: 11px 15px;
+    border-radius: 16px;
+    font-size: 13.5px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.msg-bot {
+    background: #fff;
+    color: #1e293b;
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+.msg-user {
+    background: linear-gradient(135deg, #e63946, #c1121f);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 2px 8px rgba(230,57,70,0.3);
+}
+.msg-typing {
+    align-self: flex-start;
+    background: #fff;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    padding: 12px 16px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    display: flex; gap: 5px; align-items: center;
+}
+.dot {
+    width: 7px; height: 7px;
+    background: #94a3b8;
+    border-radius: 50%;
+    animation: bounce 1.2s infinite;
+}
+.dot:nth-child(2) { animation-delay: .2s; }
+.dot:nth-child(3) { animation-delay: .4s; }
+@keyframes bounce {
+    0%,60%,100% { transform: translateY(0); }
+    30% { transform: translateY(-6px); }
+}
+
+#chatInputArea {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: #fff;
+    border-top: 1px solid #e2e8f0;
+    flex-shrink: 0;
+}
+#chatInput {
+    flex: 1;
+    padding: 11px 16px;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 24px;
+    font-size: 14px;
+    font-family: inherit;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    transition: border .2s, box-shadow .2s;
+}
+#chatInput:focus {
+    border-color: #1b3a57;
+    box-shadow: 0 0 0 3px rgba(27,58,87,0.1);
+    background: #fff;
+}
+#chatInput::placeholder { color: #94a3b8; }
+#chatSend {
+    width: 42px; height: 42px;
+    background: #e63946;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: background .2s, transform .1s;
+    box-shadow: 0 2px 8px rgba(230,57,70,0.35);
+}
+#chatSend:hover { background: #c1121f; transform: scale(1.06); }
+#chatSend:disabled { background: #cbd5e1; box-shadow: none; cursor: not-allowed; transform: none; }
+
+@media(max-width:520px){
+    #chatWindow { height: 85vh; border-radius: 16px; }
+}
+</style>
+
+<!-- Modal overlay -->
+<div id="chatOverlay" onclick="closeOnOverlay(event)">
+  <div id="chatWindow">
+
+    <div id="chatHeader">
+      <div class="ch-left">
+        <div class="ch-avatar">🤖</div>
+        <div class="ch-info">
+          <h3>CyberBot AI</h3>
+          <p>🟢 Online — Cybercrime Assistant</p>
+        </div>
+      </div>
+      <button class="ch-close" onclick="toggleChat()">✕</button>
+    </div>
+
+    <div id="chatMessages">
+      <div class="msg-bot" id="welcomeMsg"></div>
+    </div>
+
+    <div id="chatInputArea">
+      <input type="text" id="chatInput" placeholder="Write here...">
+      <button id="chatSend" onclick="sendChat()">&#10148;</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── All functions defined first ──
+function toggleChat() {
+    var overlay = document.getElementById("chatOverlay");
+    overlay.classList.toggle("open");
+    if (overlay.classList.contains("open")) {
+        setTimeout(function(){ document.getElementById("chatInput").focus(); }, 50);
+    }
+}
+
+function closeOnOverlay(e) {
+    if (e.target === document.getElementById("chatOverlay")) toggleChat();
+}
+
+function addMsg(text, type) {
+    var messages = document.getElementById("chatMessages");
+    var div = document.createElement("div");
+    div.className = type === "user" ? "msg-user" : "msg-bot";
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+}
+
+function sendChat() {
+    var input   = document.getElementById("chatInput");
+    var sendBtn = document.getElementById("chatSend");
+    var text = input.value.trim();
+    if (!text) return;
+    addMsg(text, "user");
+    input.value = "";
+    input.disabled = true;
+    sendBtn.disabled = true;
+    var typing = document.createElement("div");
+    typing.className = "msg-typing";
+    typing.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+    document.getElementById("chatMessages").appendChild(typing);
+    document.getElementById("chatMessages").scrollTop = 99999;
+    fetch("/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+        typing.remove();
+        addMsg(data.reply, "bot");
+        input.disabled = false; sendBtn.disabled = false; input.focus();
+    })
+    .catch(function(){
+        typing.remove();
+        addMsg("⚠️ Something went wrong. Please try again.", "bot");
+        input.disabled = false; sendBtn.disabled = false; input.focus();
+    });
+}
+
+function openMaps() {
+    var btn = document.getElementById("mapsBtn");
+    var origText = btn.innerHTML;
+    btn.innerHTML = "📍 Getting location...";
+    btn.disabled = true;
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        btn.innerHTML = origText; btn.disabled = false; return;
+    }
+    navigator.geolocation.getCurrentPosition(
+        function(pos) {
+            var url = "https://www.google.com/maps/search/cyber+crime+police+station/@" + pos.coords.latitude + "," + pos.coords.longitude + ",14z";
+            window.open(url, "_blank");
+            btn.innerHTML = origText; btn.disabled = false;
+        },
+        function(err) {
+            var msg = {1:"Location access denied. Please allow location permission.",2:"Location unavailable. Try again.",3:"Request timed out. Try again."};
+            alert(msg[err.code] || "Could not get location.");
+            btn.innerHTML = origText; btn.disabled = false;
+        },
+        { timeout: 10000, enableHighAccuracy: true }
+    );
+}
+
+function saveAndNext(e) {
+    e.preventDefault();
+    var name     = document.getElementById("qf_name").value.trim();
+    var college  = document.getElementById("qf_college").value.trim();
+    var phone    = document.getElementById("qf_phone").value.trim();
+    var email    = document.getElementById("qf_email").value.trim();
+    var location = document.getElementById("qf_location").value.trim();
+    var course   = document.getElementById("qf_course").value;
+    var year     = document.getElementById("qf_year").value;
+    var contact  = document.querySelector('input[name="qf_contact"]:checked');
+    var state    = document.getElementById("qf_state").value;
+    var facing   = document.getElementById("qf_facing").value;
+    var address = college + (location ? ", " + location : "");
+    var descParts = [];
+    if (course)  descParts.push("[Course: " + course + "]");
+    if (year)    descParts.push("[Year: " + year + "]");
+    if (contact) descParts.push("[Preferred Contact: " + contact.value + "]");
+    if (state)   descParts.push("[State: " + document.getElementById("qf_state").options[document.getElementById("qf_state").selectedIndex].text + "]");
+    if (facing)  descParts.push("[Situation: " + document.getElementById("qf_facing").options[document.getElementById("qf_facing").selectedIndex].text + "]");
+
+    window.location.href = "/complaint"
+        + "?name="    + encodeURIComponent(name)
+        + "&address=" + encodeURIComponent(address)
+        + "&phone="   + encodeURIComponent(phone)
+        + "&email="   + encodeURIComponent(email)
+        + (descParts.length ? "&desc=" + encodeURIComponent(descParts.join("\n")) : "");
+}
+
+var CYBER_CELLS = {
+    "MH": "📍 Maharashtra Cyber Cell\n📞 022-26573434\n📧 cybercell@mahapolice.gov.in\n🌐 mahapolice.gov.in",
+    "DL": "📍 Delhi Cyber Cell\n📞 011-23490001\n📧 cybercell@delhipolice.gov.in\n🌐 delhipolice.gov.in",
+    "KA": "📍 Karnataka Cyber Cell\n📞 080-22943050\n📧 cybercrime@ksp.gov.in\n🌐 ksp.gov.in",
+    "TN": "📍 Tamil Nadu Cyber Cell\n📞 044-28512526\n📧 cybercrime@tnpolice.gov.in\n🌐 tnpolice.gov.in",
+    "GJ": "📍 Gujarat Cyber Cell\n📞 079-23250798\n📧 cybercell@gujaratpolice.gov.in\n🌐 gujaratpolice.gov.in",
+    "RJ": "📍 Rajasthan Cyber Cell\n📞 0141-2744000\n📧 cybercrime@rajpolice.gov.in\n🌐 police.rajasthan.gov.in",
+    "UP": "📍 Uttar Pradesh Cyber Cell\n📞 0522-2208100\n📧 cybercell@uppolice.gov.in\n🌐 uppolice.gov.in",
+    "WB": "📍 West Bengal Cyber Cell\n📞 033-22143004\n📧 cybercrime@kolkatapolice.gov.in\n🌐 kolkatapolice.gov.in",
+    "TS": "📍 Telangana Cyber Cell\n📞 040-27852222\n📧 cybercrime@tspolice.gov.in\n🌐 tspolice.gov.in",
+    "PB": "📍 Punjab Cyber Cell\n📞 0172-2749900\n📧 cybercrime@punjabpolice.gov.in\n🌐 punjabpolice.gov.in",
+    "MP": "📍 Madhya Pradesh Cyber Cell\n📞 0755-2443500\n📧 cybercell@mppolice.gov.in\n🌐 mppolice.gov.in",
+    "HR": "📍 Haryana Cyber Cell\n📞 0172-2560750\n📧 cybercrime@haryanapolice.gov.in\n🌐 haryanapolice.gov.in",
+    "KL": "📍 Kerala Cyber Cell\n📞 0471-2721547\n📧 cybercell@keralapolice.gov.in\n🌐 keralapolice.gov.in",
+    "AP": "📍 Andhra Pradesh Cyber Cell\n📞 0866-2410750\n📧 cybercrime@appolice.gov.in\n🌐 appolice.gov.in",
+    "BR": "📍 Bihar Cyber Cell\n📞 0612-2201970\n📧 cybercell@biharpolice.gov.in\n🌐 biharpolice.gov.in"
+};
+
+function showCyberCell(val) {
+    var card = document.getElementById("cyber_cell_card");
+    if (!val || !CYBER_CELLS[val]) { card.style.display = "none"; return; }
+    card.style.display = "block";
+    card.textContent = CYBER_CELLS[val];
+    card.style.whiteSpace = "pre-line";
+}
+
+var HELP_CARDS = {
+    "fraud":    { bg:"#fff5f5", border:"#e63946", color:"#7f1d1d", text:"🚨 Call your bank immediately to freeze the transaction.\n📞 Then call 1930 within 1 hour — faster reporting = better chance of recovery.\n🌐 File at cybercrime.gov.in" },
+    "hack":     { bg:"#fff7ed", border:"#f97316", color:"#7c2d12", text:"🔓 Change your password immediately from a different device.\n✅ Enable 2FA on all accounts.\n📞 Report to CERT-In: 1800-11-4949 | Cyber Crime: 1930" },
+    "bully":    { bg:"#fdf4ff", border:"#7c3aed", color:"#4c1d95", text:"📸 Screenshot all messages as evidence.\n🚫 Block the person on all platforms.\n📞 Women Helpline: 1091 | iCall Student: 9152987821 | Cyber Crime: 1930" },
+    "scam":     { bg:"#fffbeb", border:"#f59e0b", color:"#78350f", text:"⚠️ Do NOT click the link or call back.\n📸 Screenshot the message as evidence.\n📞 Report to 1930 | Forward suspicious SMS to 1909" },
+    "identity": { bg:"#f0fdf4", border:"#16a34a", color:"#14532d", text:"🪪 Report the fake profile to the platform immediately.\n📋 File FIR at nearest police station.\n📞 Cyber Crime: 1930 | Police: 100" },
+    "safe":     { bg:"#eff6ff", border:"#3b82f6", color:"#1e3a8a", text:"✅ Great! Use the complaint form to document the incident.\n📋 Click 'Save & Continue' to proceed.\n🌐 You can also report at cybercrime.gov.in" }
+};
+
+function showHelpCard(val) {
+    var card = document.getElementById("help_card");
+    if (!val || !HELP_CARDS[val]) { card.style.display = "none"; return; }
+    var h = HELP_CARDS[val];
+    card.style.display = "block";
+    card.style.background = h.bg;
+    card.style.borderLeft = "3px solid " + h.border;
+    card.style.color = h.color;
+    card.textContent = h.text;
+    card.style.whiteSpace = "pre-line";
+}
+
+// ── DOM-dependent code runs after page loads ──
+document.addEventListener("DOMContentLoaded", function() {
+    var wm = document.getElementById("welcomeMsg");
+    if (wm) wm.textContent = "👋 Hi! I'm CyberBot, your student cybercrime assistant.\n\nAre you facing cyber bullying, fake job scams, account hacking, or online harassment? Describe your problem and I'll guide you with the right steps.\n\nYou can also ask in Hindi!";
+
+    var ci = document.getElementById("chatInput");
+    if (ci) ci.addEventListener("keydown", function(e){
+        if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); sendChat(); }
+    });
+});
+</script>
+</script>
+
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').then(function(reg) {
+      console.log('CyberGuard SW registered:', reg.scope);
+    }).catch(function(err) {
+      console.log('SW registration failed:', err);
+    });
+  });
+}
+
+// PWA Install prompt
+var deferredPrompt;
+window.addEventListener('beforeinstallprompt', function(e) {
+  e.preventDefault();
+  deferredPrompt = e;
+  var banner = document.getElementById('installBanner');
+  if (banner) banner.style.display = 'flex';
+});
+
+function installApp() {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(function(result) {
+    deferredPrompt = null;
+    var banner = document.getElementById('installBanner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+</script>
+</body>
+</html>

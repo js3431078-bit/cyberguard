@@ -1,0 +1,7 @@
+cybercrime.db
+.env
+__pycache__/
+*.pyc
+uploads/
+*.egg-info/
+.vscode/

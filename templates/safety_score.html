@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Cyber Safety Score - Student Portal</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
+.navbar{background:linear-gradient(135deg,#0f2027,#1b3a57);padding:0 32px;height:60px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 12px rgba(0,0,0,.2);position:sticky;top:0;z-index:100;}
+.navbar h2{font-size:16px;font-weight:800;color:#ffd166;}
+.navbar a{color:#ffd166;font-size:13px;text-decoration:none;font-weight:600;padding:6px 14px;border-radius:7px;transition:background .2s;}
+.navbar a:hover{background:rgba(255,255,255,.15);}
+
+.page{max-width:680px;margin:40px auto;padding:0 20px 60px;}
+
+.page-header{text-align:center;margin-bottom:32px;}
+.page-header .badge{display:inline-flex;align-items:center;gap:6px;background:rgba(22,163,74,.1);border:1px solid rgba(22,163,74,.3);color:#15803d;font-size:12px;font-weight:700;padding:5px 14px;border-radius:20px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.4px;}
+.page-header h1{font-size:30px;font-weight:900;color:#1b3a57;margin-bottom:8px;}
+.page-header p{font-size:14px;color:#64748b;line-height:1.6;}
+
+.quiz-card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(27,58,87,.1);overflow:hidden;}
+.quiz-progress{height:5px;background:#f0f4f8;}
+.quiz-bar{height:100%;background:linear-gradient(90deg,#e63946,#f97316);transition:width .4s ease;border-radius:5px;}
+.quiz-body{padding:32px;}
+
+.question-block{display:none;}
+.question-block.active{display:block;}
+.q-num{font-size:11px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+.q-text{font-size:18px;font-weight:700;color:#1b3a57;margin-bottom:22px;line-height:1.4;}
+.q-opts{display:flex;flex-direction:column;gap:10px;}
+.q-opt{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;border-radius:10px;
+  border:2px solid #e2e8f0;background:#f8fafc;
+  cursor:pointer;font-size:14px;color:#334155;font-weight:500;
+  transition:all .18s;
+}
+.q-opt:hover{border-color:#1b3a57;background:#eff6ff;transform:translateX(3px);}
+.q-opt.selected{border-color:#e63946;background:#fff5f5;color:#c1121f;font-weight:700;}
+.q-opt .opt-ico{width:32px;height:32px;border-radius:8px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:background .18s;}
+.q-opt.selected .opt-ico{background:rgba(230,57,70,.1);}
+
+.quiz-nav{display:flex;justify-content:space-between;align-items:center;margin-top:28px;}
+.nav-btn{padding:11px 24px;border-radius:9px;font-size:14px;font-weight:700;cursor:pointer;border:none;transition:all .2s;}
+.nav-btn.prev{background:#f0f4f8;color:#64748b;}
+.nav-btn.prev:hover{background:#e2e8f0;}
+.nav-btn.next{background:linear-gradient(135deg,#1b3a57,#2c5364);color:#fff;box-shadow:0 3px 10px rgba(27,58,87,.3);}
+.nav-btn.next:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(27,58,87,.35);}
+.nav-btn.submit{background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;box-shadow:0 3px 10px rgba(230,57,70,.35);}
+.nav-btn.submit:hover{transform:translateY(-1px);}
+.q-counter{font-size:13px;color:#94a3b8;font-weight:600;}
+
+/* RESULT */
+.result-block{display:none;padding:32px;text-align:center;}
+.result-block.show{display:block;}
+.result-score-wrap{margin-bottom:24px;}
+.result-num{font-size:72px;font-weight:900;line-height:1;}
+.result-label{font-size:18px;font-weight:800;margin-top:6px;}
+.result-sub{font-size:13px;color:#94a3b8;margin-top:4px;}
+.meter-wrap{background:#f0f4f8;border-radius:20px;height:14px;overflow:hidden;margin:16px 0 8px;max-width:400px;margin-left:auto;margin-right:auto;}
+.meter-bar{height:100%;border-radius:20px;transition:width 1.2s ease;}
+.tips-grid{display:flex;flex-direction:column;gap:10px;margin-top:24px;text-align:left;}
+.tip-row{display:flex;align-items:flex-start;gap:12px;padding:12px 14px;border-radius:10px;font-size:13px;line-height:1.5;}
+.tip-row.bad{background:#fff5f5;border-left:3px solid #e63946;color:#7f1d1d;}
+.tip-row.good{background:#f0fdf4;border-left:3px solid #16a34a;color:#14532d;}
+.tip-ico{font-size:18px;flex-shrink:0;margin-top:1px;}
+.result-actions{display:flex;gap:12px;justify-content:center;margin-top:28px;flex-wrap:wrap;}
+.ra-btn{padding:11px 24px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:none;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .2s;}
+.ra-btn.retry{background:#f0f4f8;color:#1b3a57;}
+.ra-btn.retry:hover{background:#e2e8f0;}
+.ra-btn.report{background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;box-shadow:0 3px 10px rgba(230,57,70,.3);}
+.ra-btn.report:hover{transform:translateY(-1px);}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <h2>🛡️ Cyber Safety Score Checker</h2>
+  <a href="/home">← Back to Home</a>
+</div>
+
+<div class="page">
+
+  <div class="page-header">
+    <div class="badge">🔐 Personal Safety Assessment</div>
+    <h1>How Safe Are You Online?</h1>
+    <p>Answer 5 quick questions to get your personal Cyber Safety Score with actionable tips.</p>
+  </div>
+
+  <div class="quiz-card">
+    <div class="quiz-progress"><div class="quiz-bar" id="progressBar" style="width:0%"></div></div>
+
+    <div class="quiz-body" id="quizBody">
+
+      <!-- Q1 -->
+      <div class="question-block active" data-q="0">
+        <div class="q-num">Question 1 of 5</div>
+        <div class="q-text">Do you use the same password for multiple accounts?</div>
+        <div class="q-opts">
+          <div class="q-opt" data-val="0" onclick="selectOpt(this)"><span class="opt-ico">😬</span> Yes, always</div>
+          <div class="q-opt" data-val="1" onclick="selectOpt(this)"><span class="opt-ico">🤔</span> Sometimes</div>
+          <div class="q-opt" data-val="2" onclick="selectOpt(this)"><span class="opt-ico">✅</span> No, always unique</div>
+        </div>
+        <div class="quiz-nav">
+          <span class="q-counter">1 / 5</span>
+          <button class="nav-btn next" onclick="nextQ()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="question-block" data-q="1">
+        <div class="q-num">Question 2 of 5</div>
+        <div class="q-text">Do you have 2-Factor Authentication (2FA) enabled?</div>
+        <div class="q-opts">
+          <div class="q-opt" data-val="0" onclick="selectOpt(this)"><span class="opt-ico">❌</span> No</div>
+          <div class="q-opt" data-val="1" onclick="selectOpt(this)"><span class="opt-ico">🔶</span> On some accounts</div>
+          <div class="q-opt" data-val="2" onclick="selectOpt(this)"><span class="opt-ico">🔐</span> Yes, on all accounts</div>
+        </div>
+        <div class="quiz-nav">
+          <button class="nav-btn prev" onclick="prevQ()">← Back</button>
+          <span class="q-counter">2 / 5</span>
+          <button class="nav-btn next" onclick="nextQ()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="question-block" data-q="2">
+        <div class="q-num">Question 3 of 5</div>
+        <div class="q-text">Have you ever clicked a link from an unknown SMS or email?</div>
+        <div class="q-opts">
+          <div class="q-opt" data-val="0" onclick="selectOpt(this)"><span class="opt-ico">😰</span> Yes, often</div>
+          <div class="q-opt" data-val="1" onclick="selectOpt(this)"><span class="opt-ico">😐</span> Rarely</div>
+          <div class="q-opt" data-val="2" onclick="selectOpt(this)"><span class="opt-ico">🛡️</span> Never</div>
+        </div>
+        <div class="quiz-nav">
+          <button class="nav-btn prev" onclick="prevQ()">← Back</button>
+          <span class="q-counter">3 / 5</span>
+          <button class="nav-btn next" onclick="nextQ()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="question-block" data-q="3">
+        <div class="q-num">Question 4 of 5</div>
+        <div class="q-text">Do you share personal info (phone, address, ID) on social media?</div>
+        <div class="q-opts">
+          <div class="q-opt" data-val="0" onclick="selectOpt(this)"><span class="opt-ico">📢</span> Yes, publicly</div>
+          <div class="q-opt" data-val="1" onclick="selectOpt(this)"><span class="opt-ico">👥</span> Only with friends</div>
+          <div class="q-opt" data-val="2" onclick="selectOpt(this)"><span class="opt-ico">🔒</span> Never</div>
+        </div>
+        <div class="quiz-nav">
+          <button class="nav-btn prev" onclick="prevQ()">← Back</button>
+          <span class="q-counter">4 / 5</span>
+          <button class="nav-btn next" onclick="nextQ()">Next →</button>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="question-block" data-q="4">
+        <div class="q-num">Question 5 of 5</div>
+        <div class="q-text">Do you keep your apps and phone software updated?</div>
+        <div class="q-opts">
+          <div class="q-opt" data-val="0" onclick="selectOpt(this)"><span class="opt-ico">🚫</span> Rarely / Never</div>
+          <div class="q-opt" data-val="1" onclick="selectOpt(this)"><span class="opt-ico">🔄</span> Sometimes</div>
+          <div class="q-opt" data-val="2" onclick="selectOpt(this)"><span class="opt-ico">⚡</span> Always</div>
+        </div>
+        <div class="quiz-nav">
+          <button class="nav-btn prev" onclick="prevQ()">← Back</button>
+          <span class="q-counter">5 / 5</span>
+          <button class="nav-btn submit" onclick="showResult()">🔍 Get My Score</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-block" id="resultBlock">
+      <div class="result-score-wrap">
+        <div class="result-num" id="rNum">0</div>
+        <div class="result-label" id="rLabel">—</div>
+        <div class="result-sub">out of 10 points</div>
+      </div>
+      <div class="meter-wrap"><div class="meter-bar" id="mBar" style="width:0%"></div></div>
+      <div class="tips-grid" id="tipsGrid"></div>
+      <div class="result-actions">
+        <button class="ra-btn retry" onclick="retakeQuiz()">↩ Retake Quiz</button>
+        <a class="ra-btn report" href="/complaint">📋 Report an Incident</a>
+        <a class="ra-btn" style="background:#1b3a57;color:#fff;" href="/home">← Back to Home</a>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+var answers = [null, null, null, null, null];
+var current = 0;
+var TIPS = [
+  {bad:"Use a unique password for every account — consider a password manager.",good:"Great! Unique passwords protect each account independently."},
+  {bad:"Enable 2FA on all accounts — especially email, banking, and social media.",good:"2FA is your strongest defence against account takeover."},
+  {bad:"Never click links in unknown SMS or emails — verify the sender first.",good:"Good habit! Phishing links are the #1 way accounts get hacked."},
+  {bad:"Keep your profile private — never post your phone, address or ID publicly.",good:"Smart! Limiting personal info online reduces identity theft risk."},
+  {bad:"Always update apps and OS — updates patch security vulnerabilities.",good:"Updated software closes the doors attackers use to get in."}
+];
+var LEVELS = [
+  {min:0,max:3,label:"🔴 High Risk",color:"#e63946"},
+  {min:4,max:6,label:"🟠 Moderate Risk",color:"#f97316"},
+  {min:7,max:8,label:"🟡 Fairly Safe",color:"#f59e0b"},
+  {min:9,max:10,label:"🟢 Very Safe",color:"#16a34a"}
+];
+
+function selectOpt(el) {
+  el.closest(".q-opts").querySelectorAll(".q-opt").forEach(function(o){ o.classList.remove("selected"); });
+  el.classList.add("selected");
+  answers[current] = parseInt(el.dataset.val);
+}
+
+function showQ(idx) {
+  document.querySelectorAll(".question-block").forEach(function(b){ b.classList.remove("active"); });
+  document.querySelectorAll(".question-block")[idx].classList.add("active");
+  current = idx;
+  document.getElementById("progressBar").style.width = ((idx / 5) * 100) + "%";
+  // restore selection
+  var blocks = document.querySelectorAll(".question-block");
+  var opts = blocks[idx].querySelectorAll(".q-opt");
+  opts.forEach(function(o){ o.classList.remove("selected"); });
+  if (answers[idx] !== null) {
+    opts.forEach(function(o){ if (parseInt(o.dataset.val) === answers[idx]) o.classList.add("selected"); });
+  }
+}
+
+function nextQ() {
+  if (answers[current] === null) { alert("Please select an answer."); return; }
+  if (current < 4) showQ(current + 1);
+}
+function prevQ() { if (current > 0) showQ(current - 1); }
+
+function showResult() {
+  if (answers[current] === null) { alert("Please select an answer."); return; }
+  if (answers.some(function(a){ return a === null; })) { alert("Please answer all questions."); return; }
+  var total = answers.reduce(function(s,v){ return s+v; }, 0);
+  var score = Math.round(total / 10 * 10);
+  var level = LEVELS.find(function(l){ return score >= l.min && score <= l.max; }) || LEVELS[0];
+
+  document.getElementById("rNum").textContent = score;
+  document.getElementById("rNum").style.color = level.color;
+  document.getElementById("rLabel").textContent = level.label;
+  document.getElementById("rLabel").style.color = level.color;
+  var bar = document.getElementById("mBar");
+  bar.style.background = level.color;
+  setTimeout(function(){ bar.style.width = (score * 10) + "%"; }, 100);
+
+  var grid = document.getElementById("tipsGrid");
+  grid.innerHTML = "";
+  answers.forEach(function(v, i){
+    var row = document.createElement("div");
+    row.className = "tip-row " + (v < 2 ? "bad" : "good");
+    row.innerHTML = '<span class="tip-ico">' + (v < 2 ? "⚠️" : "✅") + '</span><span>' + (v < 2 ? TIPS[i].bad : TIPS[i].good) + '</span>';
+    grid.appendChild(row);
+  });
+
+  document.getElementById("progressBar").style.width = "100%";
+  document.getElementById("quizBody").style.display = "none";
+  var rb = document.getElementById("resultBlock");
+  rb.classList.add("show");
+}
+
+function retakeQuiz() {
+  answers = [null, null, null, null, null];
+  document.getElementById("resultBlock").classList.remove("show");
+  document.getElementById("quizBody").style.display = "block";
+  showQ(0);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Admin Dashboard - Cybercrime Portal</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1b3a57">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CyberGuard">
+<link rel="apple-touch-icon" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
+
+/* ── NAVBAR ── */
+.navbar{
+  background:linear-gradient(135deg,#1b3a57,#0f2027);
+  color:#fff;padding:0 30px;
+  display:flex;justify-content:space-between;align-items:center;
+  height:60px;box-shadow:0 2px 12px rgba(0,0,0,.2);position:sticky;top:0;z-index:100;
+}
+.navbar h2{font-size:17px;font-weight:700;color:#ffd166;display:flex;align-items:center;gap:8px;}
+.nav-right{display:flex;align-items:center;gap:16px;}
+.nav-user{display:flex;align-items:center;gap:8px;color:#e2e8f0;font-size:13px;}
+.nav-avatar{width:32px;height:32px;background:#e63946;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
+.nav-logout{background:rgba(230,57,70,.2);color:#fca5a5;border:1px solid rgba(230,57,70,.3);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;}
+.nav-logout:hover{background:#e63946;color:#fff;}
+
+/* ── PAGE ── */
+.page{padding:24px 28px;max-width:1280px;margin:auto;}
+
+/* ── WELCOME BANNER ── */
+.welcome{
+  background:linear-gradient(135deg,#1b3a57 0%,#2c5364 50%,#1b3a57 100%);
+  color:#fff;border-radius:16px;padding:26px 30px;margin-bottom:24px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 4px 20px rgba(27,58,87,.3);position:relative;overflow:hidden;
+}
+.welcome::before{
+  content:'🛡️';position:absolute;right:120px;top:50%;transform:translateY(-50%);
+  font-size:80px;opacity:.07;
+}
+.welcome-left h2{font-size:22px;font-weight:800;margin-bottom:6px;}
+.welcome-left p{font-size:13px;opacity:.8;margin-bottom:12px;}
+.welcome-meta{display:flex;gap:16px;}
+.wmeta{font-size:11.5px;background:rgba(255,255,255,.12);padding:4px 12px;border-radius:20px;display:flex;align-items:center;gap:5px;}
+.role-badge{background:#e63946;padding:8px 20px;border-radius:24px;font-size:13px;font-weight:700;flex-shrink:0;box-shadow:0 3px 10px rgba(230,57,70,.4);}
+
+/* ── STAT CARDS ── */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat{
+  background:#fff;border-radius:14px;padding:20px 22px;
+  box-shadow:0 2px 12px rgba(0,0,0,.06);
+  display:flex;align-items:center;gap:16px;
+  border-left:4px solid #e2e8f0;transition:transform .2s,box-shadow .2s;
+}
+.stat:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.1);}
+.stat-ico{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;}
+.stat-body .num{font-size:28px;font-weight:800;line-height:1;color:#1b3a57;}
+.stat-body .lbl{font-size:12px;color:#94a3b8;font-weight:500;margin-top:3px;}
+.stat-body .trend{font-size:11px;margin-top:4px;font-weight:600;}
+.stat.blue{border-left-color:#1b3a57;} .stat.blue .stat-ico{background:#eff6ff;} .stat.blue .num{color:#1b3a57;}
+.stat.orange{border-left-color:#f97316;} .stat.orange .stat-ico{background:#fff7ed;} .stat.orange .num{color:#f97316;}
+.stat.green{border-left-color:#16a34a;} .stat.green .stat-ico{background:#f0fdf4;} .stat.green .num{color:#16a34a;}
+.stat.red{border-left-color:#e63946;} .stat.red .stat-ico{background:#fff5f5;} .stat.red .num{color:#e63946;}
+.stat.purple{border-left-color:#7c3aed;} .stat.purple .stat-ico{background:#f5f3ff;} .stat.purple .num{color:#7c3aed;}
+
+/* ── CHARTS ROW ── */
+.charts{display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin-bottom:24px;}
+.chart-card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,0,0,.06);}
+.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+.card-head h3{color:#1b3a57;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;}
+.card-badge{font-size:10px;background:#f0f4f8;color:#64748b;padding:3px 8px;border-radius:8px;font-weight:600;}
+
+/* ── RECENT ACTIVITY + TABLE ── */
+.two-col{display:grid;grid-template-columns:1fr 340px;gap:16px;margin-bottom:24px;}
+.section{background:#fff;border-radius:14px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,.06);margin-bottom:24px;}
+.section-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #f0f4f8;}
+.section-head h3{color:#1b3a57;font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px;}
+.section-head .s-count{background:#f0f4f8;color:#64748b;font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;}
+
+/* search/filter bar */
+.tbl-toolbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.tbl-search{flex:1;min-width:180px;padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:#f8fafc;outline:none;transition:border .2s;}
+.tbl-search:focus{border-color:#1b3a57;background:#fff;}
+.tbl-filter{padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:#f8fafc;cursor:pointer;outline:none;}
+
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:#f8fafc;color:#64748b;padding:10px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid #e2e8f0;}
+td{padding:11px 12px;border-bottom:1px solid #f5f7fa;color:#334155;vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#f8fafc;}
+.td-name{display:flex;align-items:center;gap:9px;}
+.td-avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1b3a57,#e63946);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.td-sub{font-size:11px;color:#94a3b8;margin-top:1px;}
+
+/* badges */
+.bp{background:#fff7ed;color:#c2410c;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
+.br{background:#f0fdf4;color:#15803d;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
+.ba{background:#eff6ff;color:#1d4ed8;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;}
+
+select.ss{padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;cursor:pointer;background:#fff;transition:border .2s;}
+select.ss:focus{border-color:#1b3a57;outline:none;}
+
+/* ── ACTIVITY FEED ── */
+.activity-feed{display:flex;flex-direction:column;gap:0;}
+.act-item{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid #f5f7fa;align-items:flex-start;}
+.act-item:last-child{border:none;}
+.act-dot{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.act-body{flex:1;}
+.act-title{font-size:13px;font-weight:600;color:#1e293b;margin-bottom:2px;}
+.act-sub{font-size:11.5px;color:#94a3b8;}
+.act-time{font-size:11px;color:#cbd5e1;flex-shrink:0;margin-top:2px;}
+.act-resolved{background:#f0fdf4;}
+.act-pending{background:#fff7ed;}
+.act-inprog{background:#eff6ff;}
+
+/* ── CRIME TYPE PILLS ── */
+.crime-pill{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;background:#f0f4f8;color:#475569;}
+
+/* ── USERS TABLE ── */
+.user-row td:first-child{font-weight:700;color:#1b3a57;}
+
+/* ── TABS ── */
+.tabs{display:flex;gap:4px;background:#fff;border-radius:12px;padding:6px;box-shadow:0 2px 10px rgba(0,0,0,.06);margin-bottom:24px;flex-wrap:wrap;}
+.tab-btn{flex:1;min-width:120px;padding:10px 14px;border:none;background:transparent;border-radius:8px;font-size:13px;font-weight:600;color:#64748b;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;}
+.tab-btn:hover{background:#f0f4f8;color:#1b3a57;}
+.tab-btn.active{background:linear-gradient(135deg,#1b3a57,#2c5364);color:#fff;box-shadow:0 2px 8px rgba(27,58,87,.3);}
+.tab-btn .tab-count{background:rgba(255,255,255,.25);padding:1px 7px;border-radius:10px;font-size:10px;}
+.tab-btn:not(.active) .tab-count{background:#f0f4f8;color:#94a3b8;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── QUICK STATS ROW ── */
+.quick-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px;}
+.qs{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.05);display:flex;flex-direction:column;gap:6px;}
+.qs-label{font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;}
+.qs-bar-wrap{background:#f0f4f8;border-radius:6px;height:8px;overflow:hidden;}
+.qs-bar{height:100%;border-radius:6px;transition:width .8s ease;}
+.qs-val{font-size:13px;font-weight:700;color:#1b3a57;}
+
+.empty{text-align:center;color:#aaa;padding:40px;font-size:14px;}
+.empty-ico{font-size:40px;margin-bottom:8px;}
+
+/* ── VIEW DATA BUTTONS ── */
+.view-data-bar{
+  display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;
+  padding:20px 24px;
+  background:linear-gradient(135deg,#1b3a57 0%,#2c5364 100%);
+  border-radius:16px;
+  box-shadow:0 4px 20px rgba(27,58,87,.3);
+  align-items:center;
+}
+.vdb-label{
+  font-size:13px;font-weight:700;color:rgba(255,255,255,.7);
+  text-transform:uppercase;letter-spacing:.6px;margin-right:4px;
+  flex-shrink:0;
+}
+.vdb-btn{
+  padding:10px 20px;border-radius:10px;font-size:13px;font-weight:700;
+  text-decoration:none;display:inline-flex;align-items:center;gap:8px;
+  transition:all .22s;border:none;cursor:pointer;flex-shrink:0;
+  box-shadow:0 2px 8px rgba(0,0,0,.15);
+}
+.vdb-btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.25);}
+.vdb-btn:active{transform:scale(.97);}
+.vdb-btn.complaints{background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;}
+.vdb-btn.users{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;}
+.vdb-btn.activity{background:linear-gradient(135deg,#f97316,#c2410c);color:#fff;}
+.vdb-btn.ailogs{background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;}
+.vdb-btn .vdb-ico{
+  width:26px;height:26px;background:rgba(255,255,255,.2);
+  border-radius:6px;display:flex;align-items:center;justify-content:center;
+  font-size:13px;flex-shrink:0;
+}
+.vdb-btn .vdb-text{display:flex;flex-direction:column;line-height:1.2;}
+.vdb-btn .vdb-text small{font-size:10px;font-weight:500;opacity:.8;}
+
+/* ── DETAIL CELL ── */
+.desc-cell{max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;color:#475569;font-size:12px;}
+.desc-cell:hover{white-space:normal;overflow:visible;background:#f8fafc;border-radius:4px;}
+
+@media(max-width:1024px){
+  .stats{grid-template-columns:repeat(2,1fr);}
+  .charts{grid-template-columns:1fr 1fr;}
+  .two-col{grid-template-columns:1fr;}
+}
+@media(max-width:640px){
+  .page{padding:14px;}
+  .stats{grid-template-columns:1fr 1fr;}
+  .charts{grid-template-columns:1fr;}
+  .welcome{flex-direction:column;gap:12px;}
+  .welcome::before{display:none;}
+  .quick-stats{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <div class="navbar-logo-wrap">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
+  </div>
+  <div class="nav-right">
+    <div class="nav-user">
+      <div class="nav-avatar">{{ username[0].upper() }}</div>
+      <span>{{ username }}</span>
+    </div>
+    <a href="/logout" class="nav-logout">⏻ Logout</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- WELCOME BANNER -->
+  <div class="welcome">
+    <div class="welcome-left">
+      <h2>Welcome back, {{ username }} 👋</h2>
+      <p>Here's what's happening in the Cybercrime Portal today.</p>
+      <div class="welcome-meta">
+        <span class="wmeta">📅 <span id="currentDate"></span></span>
+        <span class="wmeta">🕐 <span id="currentTime"></span></span>
+        <span class="wmeta">🔐 Admin Access</span>
+      </div>
+    </div>
+    <div class="role-badge">⚙️ Administrator</div>
+  </div>
+
+  <!-- STAT CARDS -->
+  <div class="stats" style="grid-template-columns:repeat(6,1fr);">
+    <div class="stat blue">
+      <div class="stat-ico">📋</div>
+      <div class="stat-body">
+        <div class="num">{{ total }}</div>
+        <div class="lbl">Total Complaints</div>
+        <div class="trend" style="color:#1b3a57;">All time</div>
+      </div>
+    </div>
+    <div class="stat orange">
+      <div class="stat-ico">⏳</div>
+      <div class="stat-body">
+        <div class="num">{{ pending }}</div>
+        <div class="lbl">Pending</div>
+        <div class="trend" style="color:#f97316;">Needs attention</div>
+      </div>
+    </div>
+    <div class="stat green">
+      <div class="stat-ico">✅</div>
+      <div class="stat-body">
+        <div class="num">{{ resolved }}</div>
+        <div class="lbl">Resolved</div>
+        <div class="trend" style="color:#16a34a;">Closed cases</div>
+      </div>
+    </div>
+    <div class="stat red">
+      <div class="stat-ico">🔄</div>
+      <div class="stat-body">
+        <div class="num">{{ total - pending - resolved }}</div>
+        <div class="lbl">In Progress</div>
+        <div class="trend" style="color:#e63946;">Active cases</div>
+      </div>
+    </div>
+    <div class="stat purple">
+      <div class="stat-ico">👥</div>
+      <div class="stat-body">
+        <div class="num">{{ users | length }}</div>
+        <div class="lbl">Registered Users</div>
+        <div class="trend" style="color:#7c3aed;">Total accounts</div>
+      </div>
+    </div>
+    <div class="stat" style="border-left-color:#0d9488;">
+      <div class="stat-ico" style="background:#f0fdfa;">🤖</div>
+      <div class="stat-body">
+        <div class="num" id="statAI" style="color:#0d9488;">{{ ai_logs | length }}</div>
+        <div class="lbl">AI Analyses</div>
+        <div class="trend" style="color:#0d9488;">Last 50 logged</div>
+      </div>
+    </div>
+    <div class="stat" style="border-left-color:#f59e0b;">
+      <div class="stat-ico" style="background:#fffbeb;">📅</div>
+      <div class="stat-body">
+        <div class="num" id="statToday" style="color:#d97706;">—</div>
+        <div class="lbl">Today's Reports</div>
+        <div class="trend" style="color:#d97706;">Live count</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- USERS + RESOLUTION QUICK STATS -->
+  <div class="quick-stats">
+    <div class="qs">
+      <div class="qs-label">Resolution Rate</div>
+      <div class="qs-bar-wrap"><div class="qs-bar" id="resBar" style="background:#16a34a;width:0%"></div></div>
+      <div class="qs-val" id="resRate">0%</div>
+    </div>
+    <div class="qs">
+      <div class="qs-label">Pending Rate</div>
+      <div class="qs-bar-wrap"><div class="qs-bar" id="penBar" style="background:#f97316;width:0%"></div></div>
+      <div class="qs-val" id="penRate">0%</div>
+    </div>
+    <div class="qs">
+      <div class="qs-label">Registered Users</div>
+      <div class="qs-bar-wrap"><div class="qs-bar" style="background:#1b3a57;width:100%"></div></div>
+      <div class="qs-val">{{ users | length }} users</div>
+    </div>
+  </div>
+
+  <!-- VIEW DATA BAR -->
+  <div class="view-data-bar">
+    <span class="vdb-label">🗄️ View Data</span>
+    <a class="vdb-btn complaints" href="/data-viewer?table=complaints">
+      <span class="vdb-ico">📋</span>
+      <span class="vdb-text">Complaints<small>View all records</small></span>
+    </a>
+    <a class="vdb-btn users" href="/data-viewer?table=users">
+      <span class="vdb-ico">👥</span>
+      <span class="vdb-text">Users<small>Registered accounts</small></span>
+    </a>
+    <a class="vdb-btn activity" href="/data-viewer?table=activity_logs">
+      <span class="vdb-ico">📜</span>
+      <span class="vdb-text">Activity Log<small>Login & actions</small></span>
+    </a>
+    <a class="vdb-btn ailogs" href="/data-viewer?table=ai_analysis_logs">
+      <span class="vdb-ico">🤖</span>
+      <span class="vdb-text">AI Analysis Log<small>Detection history</small></span>
+    </a>
+    <a class="vdb-btn" style="background:linear-gradient(135deg,#0d9488,#0f766e);color:#fff;" href="/export/backup.xml">
+      <span class="vdb-ico">💾</span>
+      <span class="vdb-text">XML Backup<small>View & download</small></span>
+    </a>
+    <a class="vdb-btn" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;" href="/data-viewer?table=complaints">
+      <span class="vdb-ico">📄</span>
+      <span class="vdb-text">Complaints XML<small>View structured data</small></span>
+    </a>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="charts">    <div class="chart-card">
+      <div class="card-head">
+        <h3>📊 Complaints by Crime Type</h3>
+        <span class="card-badge">Bar Chart</span>
+      </div>
+      <canvas id="crimeChart" height="160"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="card-head">
+        <h3>🍩 Status Breakdown</h3>
+        <span class="card-badge">Doughnut</span>
+      </div>
+      <canvas id="statusChart" height="160"></canvas>
+    </div>
+    <div class="chart-card">
+      <div class="card-head">
+        <h3>📈 Trend (Last 7 Days)</h3>
+        <span class="card-badge">Line</span>
+      </div>
+      <canvas id="trendChart" height="160"></canvas>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('complaints')">📋 Complaints <span class="tab-count">{{ total }}</span></button>
+    <button class="tab-btn" onclick="showTab('users')">👥 Users <span class="tab-count">{{ users | length }}</span></button>
+    <button class="tab-btn" onclick="showTab('activity')">📜 Activity Log <span class="tab-count">{{ activity | length }}</span></button>
+    <button class="tab-btn" onclick="showTab('ailogs')">🤖 AI Analysis Log <span class="tab-count">{{ ai_logs | length }}</span></button>
+  </div>
+
+  <!-- TAB: COMPLAINTS -->
+  <div id="tab-complaints" class="tab-panel active">
+    <div class="two-col">
+      <div class="section" style="margin-bottom:0;">
+        <div class="section-head">
+          <h3>📋 All Complaints</h3>
+          <span class="s-count">{{ total }} total</span>
+        </div>
+        <div class="tbl-toolbar">
+          <input class="tbl-search" id="searchInput" type="text" placeholder="🔍  Search by name, email or crime type...">
+          <select class="tbl-filter" id="statusFilter" onchange="filterTable()">
+            <option value="">All Status</option>
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="tbl-wrap">
+          {% if complaints %}
+          <table id="complaintsTable">
+            <thead>
+              <tr><th>#</th><th>Complainant</th><th>Phone</th><th>College/Address</th><th>Crime Type</th><th>Description</th><th>Date</th><th>Submitted</th><th>Status</th><th>Update</th></tr>
+            </thead>
+            <tbody>
+              {% for c in complaints %}
+              <tr data-status="{{ c['status'] }}" data-search="{{ (c['name'] or '') ~ ' ' ~ (c['email'] or '') ~ ' ' ~ (c['crime_type'] or '') ~ ' ' ~ (c['address'] or '') | lower }}">
+                <td style="color:#94a3b8;font-weight:600;">{{ c["id"] }}</td>
+                <td>
+                  <div class="td-name">
+                    <div class="td-avatar">{{ (c["name"] or "?")[0].upper() }}</div>
+                    <div>
+                      <div style="font-weight:600;color:#1e293b;">{{ c["name"] or "—" }}</div>
+                      <div class="td-sub">{{ c["email"] or "—" }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="color:#64748b;">{{ c["phone"] or "—" }}</td>
+                <td style="color:#64748b;font-size:12px;">{{ c["address"] or "—" }}</td>
+                <td><span class="crime-pill">{{ c["crime_type"] or "—" }}</span></td>
+                <td><div class="desc-cell" title="{{ c['description'] or '' }}">{{ c["description"] or "—" }}</div></td>
+                <td style="color:#64748b;">{{ c["date"] or "—" }}</td>
+                <td style="color:#94a3b8;font-size:11px;">{{ c["submitted"] or "—" }}</td>
+                <td>
+                  {% if c["status"] == "Pending" %}<span class="bp">⏳ Pending</span>
+                  {% elif c["status"] == "Resolved" %}<span class="br">✅ Resolved</span>
+                  {% else %}<span class="ba">🔄 {{ c["status"] }}</span>{% endif %}
+                </td>
+                <td>
+                  <select class="ss" data-id="{{ c['id'] }}" onchange="updateStatus(this)">
+                    <option {% if c["status"] == "Pending" %}selected{% endif %}>Pending</option>
+                    <option {% if c["status"] == "In Progress" %}selected{% endif %}>In Progress</option>
+                    <option {% if c["status"] == "Resolved" %}selected{% endif %}>Resolved</option>
+                  </select>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div class="empty"><div class="empty-ico">📭</div>No complaints submitted yet.</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="section" style="margin-bottom:0;">
+        <div class="section-head">
+          <h3>🕐 Recent Submissions</h3>
+          <span class="s-count">Latest 8</span>
+        </div>
+        <div class="activity-feed">
+          {% for c in complaints[:8] %}
+          <div class="act-item">
+            <div class="act-dot {% if c['status']=='Resolved' %}act-resolved{% elif c['status']=='Pending' %}act-pending{% else %}act-inprog{% endif %}">
+              {% if c['status'] == 'Resolved' %}✅{% elif c['status'] == 'Pending' %}⏳{% else %}🔄{% endif %}
+            </div>
+            <div class="act-body">
+              <div class="act-title">{{ c["name"] or "Unknown" }}</div>
+              <div class="act-sub">{{ c["crime_type"] or "Cyber Crime" }}</div>
+            </div>
+            <div class="act-time">{{ c["date"] or "—" }}</div>
+          </div>
+          {% else %}
+          <div class="empty"><div class="empty-ico">📭</div>No activity yet.</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: USERS -->
+  <div id="tab-users" class="tab-panel">
+    <div class="section">
+      <div class="section-head">
+        <h3>👥 Registered Users</h3>
+        <span class="s-count">{{ users | length }} total</span>
+      </div>
+      {% if users %}
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>User</th><th>Phone</th><th>Registered On</th></tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td style="color:#94a3b8;font-weight:600;">{{ u["id"] }}</td>
+              <td>
+                <div class="td-name">
+                  <div class="td-avatar" style="background:linear-gradient(135deg,#7c3aed,#1b3a57);">{{ (u["name"] or "?")[0].upper() }}</div>
+                  <div>
+                    <div style="font-weight:600;color:#1e293b;">{{ u["name"] }}</div>
+                    <div class="td-sub">{{ u["email"] }}</div>
+                  </div>
+                </div>
+              </td>
+              <td style="color:#64748b;">{{ u["phone"] or "—" }}</td>
+              <td style="color:#64748b;">{{ u["created"] or "—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty"><div class="empty-ico">👤</div>No users registered yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- TAB: ACTIVITY LOG -->
+  <div id="tab-activity" class="tab-panel">
+    <div class="section">
+      <div class="section-head">
+        <h3>📜 Activity Log</h3>
+        <span class="s-count">Last 50 events</span>
+      </div>
+      {% if activity %}
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>User / Email</th><th>Action</th><th>Detail</th><th>IP Address</th><th>Timestamp</th></tr>
+          </thead>
+          <tbody>
+            {% for a in activity %}
+            <tr>
+              <td style="color:#94a3b8;">{{ a["id"] }}</td>
+              <td style="font-weight:600;color:#1b3a57;">{{ a["user_email"] or "—" }}</td>
+              <td>
+                {% if "login_failed" in a["action"] %}<span class="bp">❌ Login Failed</span>
+                {% elif "login" in a["action"] %}<span class="br">🔑 Login</span>
+                {% elif "logout" in a["action"] %}<span style="background:#f1f5f9;color:#64748b;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:4px;">⏻ Logout</span>
+                {% elif "register" in a["action"] %}<span class="br">✅ Register</span>
+                {% elif "complaint" in a["action"] %}<span class="bp">📋 Complaint</span>
+                {% elif "ai_analyze" in a["action"] %}<span class="ba">🤖 AI Analyze</span>
+                {% elif "chatbot" in a["action"] %}<span class="ba">💬 Chatbot</span>
+                {% elif "password" in a["action"] %}<span style="background:#fdf4ff;color:#7c3aed;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;display:inline-flex;">🔒 Password</span>
+                {% else %}<span style="font-size:12px;color:#64748b;">{{ a["action"] }}</span>{% endif %}
+              </td>
+              <td style="color:#475569;font-size:12px;max-width:260px;word-break:break-word;">{{ a["detail"] or "—" }}</td>
+              <td style="color:#94a3b8;font-size:12px;font-family:monospace;">{{ a["ip"] or "—" }}</td>
+              <td style="color:#94a3b8;font-size:12px;">{{ a["timestamp"] or "—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty"><div class="empty-ico">📜</div>No activity recorded yet. Actions will appear here as users interact with the system.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- TAB: AI ANALYSIS LOG -->
+  <div id="tab-ailogs" class="tab-panel">
+    <div class="section">
+      <div class="section-head">
+        <h3>🤖 AI Analysis Log</h3>
+        <span class="s-count">Last 50 analyses</span>
+      </div>
+      {% if ai_logs %}
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr><th>#</th><th>User</th><th>Input Text</th><th>Crime Detected</th><th>Threat Level</th><th>Confidence</th><th>Source</th><th>Timestamp</th></tr>
+          </thead>
+          <tbody>
+            {% for a in ai_logs %}
+            <tr>
+              <td style="color:#94a3b8;">{{ a["id"] }}</td>
+              <td style="font-weight:600;color:#1b3a57;">{{ a["user_email"] or "—" }}</td>
+              <td style="color:#475569;font-size:12px;max-width:200px;word-break:break-word;">{{ (a["input_text"] or "—")[:80] }}{% if a["input_text"] and a["input_text"]|length > 80 %}…{% endif %}</td>
+              <td><span class="crime-pill">{{ a["crime"] or "—" }}</span></td>
+              <td style="font-size:12px;">{{ a["threat"] or "—" }}</td>
+              <td><span style="color:#16a34a;font-weight:700;">{{ a["confidence"] or "—" }}</span></td>
+              <td>
+                {% if a["source"] == "chatbot" %}<span class="ba">💬 Chatbot</span>
+                {% else %}<span class="br">🔍 Analyzer</span>{% endif %}
+              </td>
+              <td style="color:#94a3b8;font-size:12px;">{{ a["timestamp"] or "—" }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="empty"><div class="empty-ico">🤖</div>No AI analyses recorded yet. They will appear here when users use the complaint analyzer or chatbot.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- DATA ISLAND -->
+<script type="application/json" id="dashData">
+  { "complaints": {{ complaints | tojson }}, "total_activity": {{ activity | length }}, "total_ai": {{ ai_logs | length }}, "trend_labels": {{ trend_labels | tojson }}, "trend_data": {{ trend_data | tojson }} }
+</script>
+
+<script>
+// ── Live stats refresh every 30s ──
+function refreshStats() {
+  fetch("/api/stats")
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if (d.error) return;
+      var el = document.getElementById("statToday");
+      if (el) el.textContent = d.today;
+    })
+    .catch(function(){});
+}
+refreshStats();
+setInterval(refreshStats, 30000);
+
+// ── Tab switching ──
+function showTab(name) {
+  document.querySelectorAll(".tab-panel").forEach(function(p){ p.classList.remove("active"); });
+  document.querySelectorAll(".tab-btn").forEach(function(b){ b.classList.remove("active"); });
+  document.getElementById("tab-" + name).classList.add("active");
+  event.currentTarget.classList.add("active");
+}
+
+// ── Clock ──
+function updateClock() {
+  var now = new Date();
+  document.getElementById("currentDate").textContent = now.toLocaleDateString("en-IN", {weekday:"short",day:"numeric",month:"short",year:"numeric"});
+  document.getElementById("currentTime").textContent = now.toLocaleTimeString("en-IN", {hour:"2-digit",minute:"2-digit"});
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// ── Parse data ──
+var dash = JSON.parse(document.getElementById("dashData").textContent);
+var complaints = dash.complaints;
+var total = complaints.length;
+var pending = complaints.filter(function(c){ return c.status === "Pending"; }).length;
+var resolved = complaints.filter(function(c){ return c.status === "Resolved"; }).length;
+
+// ── Progress bars ──
+var resRate = total > 0 ? Math.round(resolved / total * 100) : 0;
+var penRate = total > 0 ? Math.round(pending / total * 100) : 0;
+setTimeout(function(){
+  document.getElementById("resBar").style.width = resRate + "%";
+  document.getElementById("penBar").style.width = penRate + "%";
+  document.getElementById("resRate").textContent = resRate + "%";
+  document.getElementById("penRate").textContent = penRate + "%";
+}, 300);
+
+// ── Crime type chart ──
+var cc = {};
+complaints.forEach(function(c) {
+  var ct = c.crime_type || "Other";
+  cc[ct] = (cc[ct] || 0) + 1;
+});
+var colors = ["#e63946","#1b3a57","#0d9488","#f59e0b","#7c3aed","#f97316","#22c55e","#94a3b8"];
+new Chart(document.getElementById("crimeChart"), {
+  type: "bar",
+  data: {
+    labels: Object.keys(cc),
+    datasets: [{
+      label: "Cases",
+      data: Object.values(cc),
+      backgroundColor: colors,
+      borderRadius: 6,
+      borderSkipped: false
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: "#f0f4f8" }, ticks: { stepSize: 1 } },
+      x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+    }
+  }
+});
+
+// ── Status doughnut ──
+var inprog = total - pending - resolved;
+new Chart(document.getElementById("statusChart"), {
+  type: "doughnut",
+  data: {
+    labels: ["Pending", "Resolved", "In Progress"],
+    datasets: [{ data: [pending, resolved, inprog], backgroundColor: ["#f97316","#22c55e","#3b82f6"], borderWidth: 0 }]
+  },
+  options: {
+    plugins: { legend: { position: "bottom", labels: { font: { size: 11 }, padding: 12 } } },
+    cutout: "65%"
+  }
+});
+
+// ── Trend line (last 7 days) — real data from DB ──
+new Chart(document.getElementById("trendChart"), {
+  type: "line",
+  data: {
+    labels: dash.trend_labels,
+    datasets: [{
+      label: "Complaints",
+      data: dash.trend_data,
+      borderColor: "#e63946",
+      backgroundColor: "rgba(230,57,70,.08)",
+      borderWidth: 2,
+      pointBackgroundColor: "#e63946",
+      pointRadius: 5,
+      pointHoverRadius: 7,
+      fill: true,
+      tension: 0.4
+    }]
+  },
+  options: {
+    plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: function(ctx){ return " " + ctx.parsed.y + " complaint" + (ctx.parsed.y !== 1 ? "s" : ""); }
+    }}},
+    scales: {
+      y: { beginAtZero: true, grid: { color: "#f0f4f8" }, ticks: { stepSize: 1, precision: 0 } },
+      x: { grid: { display: false } }
+    }
+  }
+});
+
+// ── Search & filter ──
+document.getElementById("searchInput").addEventListener("input", filterTable);
+function filterTable() {
+  var q = document.getElementById("searchInput").value.toLowerCase();
+  var sf = document.getElementById("statusFilter").value;
+  var rows = document.querySelectorAll("#complaintsTable tbody tr");
+  rows.forEach(function(row) {
+    var matchSearch = !q || row.dataset.search.includes(q);
+    var matchStatus = !sf || row.dataset.status === sf;
+    row.style.display = (matchSearch && matchStatus) ? "" : "none";
+  });
+}
+
+// ── Update status ──
+function updateStatus(sel) {
+  var id = sel.dataset.id;
+  var status = sel.value;
+  fetch("/update_status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ id: id, status: status })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(d) {
+    if (d.status === "success") {
+      var row = sel.closest("tr");
+      if (row) row.dataset.status = status;
+    } else {
+      alert("Failed to update status.");
+    }
+  });
+}
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js');
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>XML Backup Viewer - Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
+.navbar{background:linear-gradient(135deg,#0f2027,#1b3a57);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 12px rgba(0,0,0,.2);position:sticky;top:0;z-index:100;}
+.navbar h2{font-size:16px;font-weight:800;color:#ffd166;}
+.nav-links{display:flex;gap:12px;align-items:center;}
+.nav-links a{color:#ffd166;font-size:12.5px;text-decoration:none;font-weight:600;padding:6px 12px;border-radius:7px;transition:background .2s;}
+.nav-links a:hover{background:rgba(255,255,255,.12);}
+.nav-links a.dl-btn{background:#16a34a;color:#fff;border-radius:8px;}
+.nav-links a.dl-btn:hover{background:#15803d;}
+
+.page{max-width:1400px;margin:auto;padding:24px 28px 60px;}
+
+/* ── HEADER CARD ── */
+.header-card{
+  background:linear-gradient(135deg,#1b3a57,#2c5364);
+  border-radius:14px;padding:24px 28px;margin-bottom:24px;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:0 4px 20px rgba(27,58,87,.3);color:#fff;
+}
+.header-card h1{font-size:20px;font-weight:800;margin-bottom:4px;}
+.header-card p{font-size:13px;opacity:.8;}
+.header-meta{display:flex;gap:12px;flex-wrap:wrap;margin-top:10px;}
+.hmeta{background:rgba(255,255,255,.12);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;}
+.dl-card-btn{background:#e63946;color:#fff;border:none;padding:10px 20px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .2s;flex-shrink:0;}
+.dl-card-btn:hover{background:#c1121f;}
+
+/* ── TABLE TABS ── */
+.table-tabs{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.ttab{padding:9px 18px;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #e2e8f0;background:#fff;color:#64748b;transition:all .2s;display:flex;align-items:center;gap:7px;}
+.ttab:hover{border-color:#1b3a57;color:#1b3a57;}
+.ttab.active{background:#1b3a57;color:#fff;border-color:#1b3a57;box-shadow:0 3px 10px rgba(27,58,87,.3);}
+.ttab .cnt{background:rgba(255,255,255,.2);padding:2px 8px;border-radius:10px;font-size:11px;}
+.ttab:not(.active) .cnt{background:#f0f4f8;color:#94a3b8;}
+
+/* ── XML PANEL ── */
+.xml-panel{display:none;}
+.xml-panel.active{display:block;}
+
+/* ── TOOLBAR ── */
+.toolbar{display:flex;gap:10px;margin-bottom:14px;align-items:center;flex-wrap:wrap;}
+.toolbar h3{font-size:15px;font-weight:700;color:#1b3a57;flex:1;display:flex;align-items:center;gap:7px;}
+.search-box{padding:8px 14px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;background:#fff;outline:none;width:240px;transition:border .2s;}
+.search-box:focus{border-color:#1b3a57;}
+.row-count{font-size:12px;color:#94a3b8;font-weight:600;}
+
+/* ── XML TREE VIEW ── */
+.xml-tree-card{background:#fff;border-radius:14px;box-shadow:0 2px 12px rgba(0,0,0,.07);overflow:hidden;margin-bottom:20px;}
+.xml-tree-header{background:#f8fafc;padding:12px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:8px;font-size:12px;color:#64748b;font-weight:600;}
+.xml-tree-header .tag{color:#1b3a57;font-family:monospace;font-size:13px;}
+.xml-tree-header .attr{color:#7c3aed;font-family:monospace;}
+
+/* ── TABLE VIEW ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead tr{background:#1b3a57;}
+th{color:#fff;padding:11px 13px;text-align:left;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;}
+td{padding:10px 13px;border-bottom:1px solid #f0f4f8;color:#334155;vertical-align:top;max-width:260px;word-break:break-word;}
+tr:last-child td{border-bottom:none;}
+tr:nth-child(even) td{background:#fafbfc;}
+tr:hover td{background:#f0f4f8;}
+td.col-id{color:#94a3b8;font-weight:700;font-size:12px;width:50px;}
+td.col-status-pending{color:#c2410c;font-weight:700;}
+td.col-status-resolved{color:#15803d;font-weight:700;}
+td.col-ts{font-size:11px;color:#94a3b8;white-space:nowrap;}
+td.col-email{color:#1b3a57;font-weight:600;}
+
+/* ── PAGINATION ── */
+.pagination{display:flex;gap:6px;justify-content:center;padding:16px;flex-wrap:wrap;}
+.pg-btn{padding:6px 13px;border:1.5px solid #e2e8f0;border-radius:7px;background:#fff;font-size:12px;font-weight:600;cursor:pointer;color:#64748b;transition:all .2s;}
+.pg-btn:hover,.pg-btn.active{background:#1b3a57;color:#fff;border-color:#1b3a57;}
+.pg-info{font-size:12px;color:#94a3b8;text-align:center;padding-bottom:10px;}
+
+.empty{text-align:center;padding:50px;color:#aaa;}
+</style>
+</head>
+<body>
+
+<div class="navbar">
+  <h2>🗄️ XML Backup Viewer</h2>
+  <div class="nav-links">
+    <span style="color:#e2e8f0;font-size:12px;">👤 {{ username }}</span>
+    <a href="/dashboard">← Dashboard</a>
+    <a href="/export/backup.xml?download=1" class="dl-btn">⬇️ Download XML</a>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header-card">
+    <div>
+      <h1>💾 Full Database XML Backup</h1>
+      <p>Structured view of all system data — complaints, users, activity logs, AI analyses</p>
+      <div class="header-meta">
+        <span class="hmeta">📅 Generated: {{ generated }}</span>
+        {% for tname, tdata in data.items() %}
+        <span class="hmeta">{{ tname.replace('_',' ').title() }}: {{ tdata.rows | length }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    <a href="/export/backup.xml?download=1" class="dl-card-btn">⬇️ Download .xml</a>
+  </div>
+
+  <!-- TABLE TABS -->
+  <div class="table-tabs">
+    {% set icons = {"complaints":"📋","users":"👥","activity_logs":"📜","ai_analysis_logs":"🤖"} %}
+    {% for tname, tdata in data.items() %}
+    <button class="ttab {% if loop.first %}active{% endif %}"
+      onclick="showTable('{{ tname }}', this)">
+      {{ icons.get(tname,'📁') }} {{ tname.replace('_',' ').title() }}
+      <span class="cnt">{{ tdata.rows | length }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <!-- PANELS -->
+  {% for tname, tdata in data.items() %}
+  <div class="xml-panel {% if loop.first %}active{% endif %}" id="panel-{{ tname }}">
+
+    <!-- Visual XML structure preview (no raw code) -->
+    <div class="xml-tree-card">
+      <div class="xml-tree-header">
+        <span style="font-size:13px;font-weight:700;color:#1b3a57;">🌳 XML Structure</span>
+        <div style="display:flex;align-items:center;gap:6px;margin-left:12px;flex-wrap:wrap;">
+          <span style="background:#eff6ff;color:#1b3a57;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">
+            &lt;{{ tname }}&gt;
+          </span>
+          <span style="color:#94a3b8;font-size:12px;">contains</span>
+          <span style="background:#f0fdf4;color:#15803d;padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;">
+            {{ tdata.rows | length }} &lt;record&gt; elements
+          </span>
+          <span style="color:#94a3b8;font-size:12px;">each with</span>
+          {% for f in tdata.fields %}
+          <span style="background:#f5f3ff;color:#7c3aed;padding:2px 8px;border-radius:5px;font-size:11px;font-weight:600;">{{ f }}</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <h3>
+        {{ icons.get(tname,'📁') }} {{ tname.replace('_',' ').title() }} Records
+      </h3>
+      <input class="search-box" type="text" placeholder="🔍 Search..."
+        oninput="filterRows('{{ tname }}', this.value)">
+      <span class="row-count" id="count-{{ tname }}">{{ tdata.rows | length }} records</span>
+    </div>
+
+    <!-- Table -->
+    <div class="xml-tree-card">
+      <div class="tbl-wrap">
+        {% if tdata.rows %}
+        <table id="table-{{ tname }}">
+          <thead>
+            <tr>
+              {% for f in tdata.fields %}
+              <th>{{ f.replace('_',' ').upper() }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody id="tbody-{{ tname }}">
+            {% for row in tdata.rows %}
+            <tr>
+              {% for f in tdata.fields %}
+              <td class="
+                {%- if f == 'id' %} col-id
+                {%- elif f in ['email','user_email'] %} col-email
+                {%- elif f == 'status' %}
+                  {%- if row.get(f) == 'Pending' %} col-status-pending
+                  {%- elif row.get(f) == 'Resolved' %} col-status-resolved
+                  {%- endif %}
+                {%- elif f in ['timestamp','submitted','created'] %} col-ts
+                {%- endif %}
+              ">{{ row.get(f) or '—' }}</td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="empty">No records in this table yet.</div>
+        {% endif %}
+      </div>
+      <div class="pg-info" id="pginfo-{{ tname }}"></div>
+      <div class="pagination" id="pg-{{ tname }}"></div>
+    </div>
+
+  </div>
+  {% endfor %}
+
+</div>
+
+<script>
+var PER_PAGE = 25;
+var state = {};
+
+function showTable(name, btn) {
+  document.querySelectorAll(".xml-panel").forEach(function(p){ p.classList.remove("active"); });
+  document.querySelectorAll(".ttab").forEach(function(b){ b.classList.remove("active"); });
+  document.getElementById("panel-" + name).classList.add("active");
+  btn.classList.add("active");
+}
+
+function filterRows(tname, q) {
+  var rows = document.querySelectorAll("#tbody-" + tname + " tr");
+  var visible = 0;
+  rows.forEach(function(r){
+    var match = !q || r.textContent.toLowerCase().includes(q.toLowerCase());
+    r.style.display = match ? "" : "none";
+    if (match) visible++;
+  });
+  document.getElementById("count-" + tname).textContent = visible + " records";
+}
+
+// Pagination for each table
+document.querySelectorAll(".xml-panel").forEach(function(panel) {
+  var tname = panel.id.replace("panel-", "");
+  var tbody = document.getElementById("tbody-" + tname);
+  if (!tbody) return;
+  var rows = Array.from(tbody.querySelectorAll("tr"));
+  if (rows.length <= PER_PAGE) return;
+
+  state[tname] = 1;
+
+  function render(page) {
+    state[tname] = page;
+    var total = rows.length;
+    var pages = Math.ceil(total / PER_PAGE);
+    var start = (page - 1) * PER_PAGE;
+    rows.forEach(function(r, i){ r.style.display = (i >= start && i < start + PER_PAGE) ? "" : "none"; });
+    document.getElementById("pginfo-" + tname).textContent =
+      "Showing " + (start+1) + "–" + Math.min(start+PER_PAGE, total) + " of " + total + " records";
+    var pg = document.getElementById("pg-" + tname);
+    pg.innerHTML = "";
+    for (var i = 1; i <= pages; i++) {
+      var btn = document.createElement("button");
+      btn.className = "pg-btn" + (i === page ? " active" : "");
+      btn.textContent = i;
+      btn.dataset.p = i;
+      btn.onclick = (function(p){ return function(){ render(p); }; })(i);
+      pg.appendChild(btn);
+    }
+  }
+  render(1);
+});
+</script>
+</body>
+</html>

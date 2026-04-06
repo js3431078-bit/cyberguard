@@ -18,17 +18,17 @@ body.dark{
 /* ── UNIFIED NAVBAR ── */
 .navbar{
   background:linear-gradient(135deg,#0f2027,#1b3a57);
-  color:#fff;padding:0 32px;height:62px;
+  color:#fff;padding:0 32px;height:68px;
   display:flex;justify-content:space-between;align-items:center;
   box-shadow:0 2px 14px rgba(0,0,0,.25);
   position:sticky;top:0;z-index:200;
 }
 .navbar h1,.navbar h2{font-size:17px;font-weight:800;color:#ffd166;display:flex;align-items:center;gap:8px;}
-.navbar-logo{height:38px;width:auto;display:block;}
+.navbar-logo{height:44px;width:auto;display:block;}
 .navbar-logo-wrap{display:flex;align-items:center;}
 /* Responsive logo scaling */
-@media(max-width:768px){.navbar-logo{height:30px;}}
-@media(max-width:480px){.navbar-logo{height:26px;}}
+@media(max-width:768px){.navbar-logo{height:34px;}}
+@media(max-width:480px){.navbar-logo{height:28px;}}
 .navbar ul{display:flex;gap:6px;list-style:none;align-items:center;}
 .navbar ul li a,.navbar a{
   color:#e2e8f0;text-decoration:none;font-size:13px;font-weight:600;

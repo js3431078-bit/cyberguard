@@ -282,11 +282,27 @@ def submit_complaint():
         formatted_id = f"CG-{year}-{complaint_id:05d}"
 
         log_activity("complaint_submitted", f"ID: {formatted_id}, Crime: {crime_type}")
+
+        # ── Forward to cybercrime.gov.in (deep link with pre-filled data) ──
+        import urllib.parse
+        gov_params = urllib.parse.urlencode({
+            "complaint_type": crime_type,
+            "name": name,
+            "email": email,
+            "phone": phone,
+            "description": description[:500]
+        })
+        gov_link = f"https://cybercrime.gov.in/Webform/Accept.aspx"
+
+        # ── Email notification to admin (if SMTP configured) ──
+        _send_complaint_email(formatted_id, name, email, crime_type, description, date)
+
         return jsonify({
             "status": "success",
             "complaint_id": formatted_id,
             "raw_id": complaint_id,
-            "message": f"Your complaint has been successfully submitted to Cyber Crime. You will be contacted shortly."
+            "gov_link": gov_link,
+            "message": "Your complaint has been successfully submitted to Cyber Crime. You will be contacted shortly."
         })
     except Exception as ex:
         logging.error(f"submit_complaint error: {ex}")
@@ -787,7 +803,86 @@ def chat():
     return _smart_reply(msg, hindi)
 
 
-def _log_ai(msg, reply, hindi=False):
+def _send_complaint_email(complaint_id, name, email, crime_type, description, date):
+    """Send email notification — works if SMTP env vars are set."""
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        from email.mime.multipart import MIMEMultipart
+
+        smtp_host  = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+        smtp_port  = int(os.environ.get("SMTP_PORT", "587"))
+        smtp_user  = os.environ.get("SMTP_USER", "")
+        smtp_pass  = os.environ.get("SMTP_PASS", "")
+        admin_mail = os.environ.get("ADMIN_EMAIL", smtp_user)
+
+        if not smtp_user or not smtp_pass:
+            return  # SMTP not configured — skip silently
+
+        subject = f"[CyberGuard] New Complaint {complaint_id} — {crime_type}"
+        body = f"""
+New cybercrime complaint submitted on CyberGuard Portal.
+
+Complaint ID : {complaint_id}
+Name         : {name}
+Email        : {email}
+Crime Type   : {crime_type}
+Incident Date: {date}
+
+Description:
+{description[:800]}
+
+---
+View on cybercrime.gov.in: https://cybercrime.gov.in
+CyberGuard Portal — Student Cybercrime Reporting System
+        """.strip()
+
+        msg = MIMEMultipart()
+        msg["From"]    = smtp_user
+        msg["To"]      = admin_mail
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "plain"))
+
+        # Also send confirmation to complainant
+        confirm_body = f"""
+Dear {name},
+
+Your complaint has been successfully registered on CyberGuard Portal.
+
+Complaint ID : {complaint_id}
+Crime Type   : {crime_type}
+Status       : Pending Review
+
+Please save your Complaint ID to track the status of your report.
+
+Next Steps:
+1. Our team will review your complaint within 24-48 hours.
+2. You can also file at: https://cybercrime.gov.in
+3. For urgent help, call: 1930
+
+Stay safe,
+CyberGuard Team
+        """.strip()
+
+        confirm_msg = MIMEMultipart()
+        confirm_msg["From"]    = smtp_user
+        confirm_msg["To"]      = email
+        confirm_msg["Subject"] = f"Complaint Registered — {complaint_id} | CyberGuard"
+        confirm_msg.attach(MIMEText(confirm_body, "plain"))
+
+        with smtplib.SMTP(smtp_host, smtp_port) as server:
+            server.starttls()
+            server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+            if email and email != smtp_user:
+                server.send_message(confirm_msg)
+
+        logging.info(f"Complaint email sent for {complaint_id}")
+    except Exception as e:
+        logging.warning(f"Email send failed (non-critical): {e}")
+
+
+
     try:
         r = analyze_text(msg.lower())
         if r["crime"] != "Other Cyber Crime":

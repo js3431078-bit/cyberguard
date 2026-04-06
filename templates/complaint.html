@@ -412,9 +412,10 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
       <div style="font-size:11px;opacity:.7;margin-top:4px;">Save this ID to track your complaint status</div>
     </div>
     <p style="font-size:12px;color:#94a3b8;margin-top:4px;">Use this ID on the Track Complaint page to check your status.</p>
-    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;">
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;">
       <button class="p-btn" onclick="window.location.href='/home'">Go to Home</button>
       <button class="p-btn" style="background:#1b3a57;" onclick="window.location.href='/track'">🔍 Track Complaint</button>
+      <a id="govLinkBtn" href="https://cybercrime.gov.in" target="_blank" class="p-btn" style="background:#16a34a;display:none;text-decoration:none;">🌐 Also File on Gov Portal</a>
     </div>
   </div>
 </div>
@@ -611,6 +612,10 @@ function submitComplaint(e) {
       if (d.complaint_id) {
         document.getElementById("complaintIdText").textContent = d.complaint_id;
         document.getElementById("complaintIdBox").style.display = "block";
+      }
+      if (d.gov_link) {
+        var govBtn = document.getElementById("govLinkBtn");
+        if (govBtn) { govBtn.href = d.gov_link; govBtn.style.display = "inline-flex"; }
       }
       document.getElementById("popupOverlay").className = "popup-overlay on";
     } else {

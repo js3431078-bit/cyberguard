@@ -223,13 +223,16 @@ footer strong{color:#ffd166;}
 <div class="navbar-logo-wrap">
   <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
 </div>
-<ul>
+<ul id="navMenu">
 <li><a href="/about">About</a></li>
 <li><a href="/contact">Help & Helplines</a></li>
 <li><a href="/track">🔍 Track Complaint</a></li>
 <li><a href="/alerts">🚨 Cyber Alerts</a></li>
 <li><a href="/logout">Logout</a></li>
 </ul>
+<button class="navbar-toggle" id="navToggle" onclick="toggleNav()" aria-label="Menu">
+  <span></span><span></span><span></span>
+</button>
 </div>
 
 <!-- Hero -->
@@ -617,6 +620,16 @@ footer strong{color:#ffd166;}
 </div>
 
 <script>
+// ── Navbar hamburger ──
+function toggleNav() {
+  var menu = document.getElementById("navMenu");
+  menu.classList.toggle("open");
+}
+// Close menu on link click
+document.querySelectorAll("#navMenu a").forEach(function(a){
+  a.addEventListener("click", function(){ document.getElementById("navMenu").classList.remove("open"); });
+});
+
 // ── All functions defined first ──
 function toggleChat() {
     var overlay = document.getElementById("chatOverlay");

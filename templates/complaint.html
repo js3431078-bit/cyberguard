@@ -17,9 +17,15 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh;}
-.navbar{background:#1b3a57;color:#fff;padding:14px 30px;display:flex;justify-content:space-between;align-items:center;}
+.navbar{background:linear-gradient(135deg,#0f2027,#1b3a57);color:#fff;padding:0 24px;height:60px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:200;}
 .navbar h2{font-size:17px;font-weight:700;color:#ffd166;}
 .navbar a{color:#ffd166;font-size:13px;text-decoration:none;font-weight:600;}
+@media(max-width:768px){
+  .page{flex-direction:column !important;padding:12px !important;gap:16px !important;}
+  .left-panel{width:100% !important;}
+  .right-panel{width:100% !important;}
+  .f-row{grid-template-columns:1fr !important;}
+}
 .page{display:flex;gap:22px;padding:24px 28px;max-width:1160px;margin:auto;}
 .left-panel{width:310px;flex-shrink:0;display:flex;flex-direction:column;gap:16px;}
 .right-panel{flex:1;}

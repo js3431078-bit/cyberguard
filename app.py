@@ -145,6 +145,71 @@ def index():
 def register_page():
     return render_template("register.html")
 
+# ── OTP SEND & VERIFY ────────────────────────────────────────────────────────
+import random, time
+
+@app.route("/send-otp", methods=["POST"])
+def send_otp():
+    data  = request.json
+    email = data.get("email","").strip()
+    if not email:
+        return jsonify({"status":"error","message":"Email required."})
+
+    otp = str(random.randint(100000, 999999))
+    session["otp"]       = otp
+    session["otp_email"] = email
+    session["otp_time"]  = time.time()
+
+    # Try to send email if SMTP configured
+    sent = False
+    try:
+        import smtplib
+        from email.mime.text import MIMEText
+        smtp_user = os.environ.get("SMTP_USER","")
+        smtp_pass = os.environ.get("SMTP_PASS","")
+        if smtp_user and smtp_pass:
+            msg = MIMEText(f"Your CyberGuard OTP is: {otp}\n\nValid for 2 minutes. Do not share this with anyone.")
+            msg["Subject"] = "CyberGuard — Email Verification OTP"
+            msg["From"]    = smtp_user
+            msg["To"]      = email
+            with smtplib.SMTP("smtp.gmail.com", 587) as s:
+                s.starttls()
+                s.login(smtp_user, smtp_pass)
+                s.send_message(msg)
+            sent = True
+    except Exception as e:
+        logging.warning(f"OTP email failed: {e}")
+
+    logging.info(f"OTP for {email}: {otp}")  # visible in Railway logs for testing
+    return jsonify({"status":"sent","sent_email":sent,
+                    "message":"OTP sent!" if sent else "OTP generated (check server logs for testing)."})
+
+@app.route("/verify-otp", methods=["POST"])
+def verify_otp():
+    data  = request.json
+    email = data.get("email","").strip()
+    otp   = data.get("otp","").strip()
+
+    stored_otp   = session.get("otp","")
+    stored_email = session.get("otp_email","")
+    stored_time  = session.get("otp_time", 0)
+
+    if not stored_otp:
+        return jsonify({"status":"error","message":"OTP not found. Please request a new one."})
+    if email != stored_email:
+        return jsonify({"status":"error","message":"Email mismatch."})
+    if time.time() - stored_time > 120:
+        session.pop("otp", None)
+        return jsonify({"status":"error","message":"OTP expired. Please request a new one."})
+    if otp != stored_otp:
+        return jsonify({"status":"error","message":"Incorrect OTP. Please try again."})
+
+    # Clear OTP after successful verification
+    session.pop("otp", None)
+    session.pop("otp_email", None)
+    session.pop("otp_time", None)
+    return jsonify({"status":"verified","message":"OTP verified successfully."})
+
 @app.route("/register", methods=["POST"])
 def register_user():
     d = request.json

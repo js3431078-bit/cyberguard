@@ -230,6 +230,12 @@ def contact():
 def about():
     return render_template("about.html")
 
+@app.route("/alerts")
+def alerts():
+    if "email" not in session:
+        return redirect("/login")
+    return render_template("alerts.html")
+
 @app.route("/complaint", methods=["GET"])
 def complaint():
     if "email" not in session:

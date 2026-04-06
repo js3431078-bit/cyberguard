@@ -268,14 +268,26 @@ def submit_complaint():
                 uf.save(os.path.join(app.config["UPLOAD_FOLDER"], fn))
                 file_objs.append(fn)
         conn = get_db()
-        conn.execute(
+        cursor = conn.execute(
             "INSERT INTO complaints(user_email,name,email,phone,address,crime_type,description,file,date,status) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (session["email"],name,email,phone,address,crime_type,description,",".join(file_objs),date,"Pending")
         )
+        complaint_id = cursor.lastrowid
         conn.commit()
         conn.close()
-        log_activity("complaint_submitted", f"Crime: {crime_type}, Date: {date}")
-        return jsonify({"status":"success","message":"Your complaint has been successfully submitted to Cyber Crime. You will be contacted shortly."})
+
+        # Format unique complaint ID: CG-YYYY-XXXXX
+        from datetime import datetime as dt
+        year = dt.now().year
+        formatted_id = f"CG-{year}-{complaint_id:05d}"
+
+        log_activity("complaint_submitted", f"ID: {formatted_id}, Crime: {crime_type}")
+        return jsonify({
+            "status": "success",
+            "complaint_id": formatted_id,
+            "raw_id": complaint_id,
+            "message": f"Your complaint has been successfully submitted to Cyber Crime. You will be contacted shortly."
+        })
     except Exception as ex:
         logging.error(f"submit_complaint error: {ex}")
         return jsonify({"status":"error","message":f"Submission failed: {str(ex)}"})
@@ -533,21 +545,33 @@ def track_complaint():
     result = None
     error  = None
     if request.method == "POST":
-        cid = request.form.get("complaint_id","").strip()
-        if not cid.isdigit():
-            error = "Please enter a valid numeric complaint ID."
+        cid = request.form.get("complaint_id","").strip().upper()
+        # Accept both "CG-2026-00042" and plain "42"
+        raw_id = None
+        if cid.startswith("CG-") and len(cid.split("-")) == 3:
+            try:
+                raw_id = int(cid.split("-")[2])
+            except ValueError:
+                error = "Invalid complaint ID format."
+        elif cid.isdigit():
+            raw_id = int(cid)
         else:
+            error = "Please enter a valid Complaint ID (e.g. CG-2026-00042 or 42)."
+
+        if raw_id is not None:
             conn = get_db()
             row = conn.execute(
                 "SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id=? AND user_email=?",
-                (int(cid), session["email"])
+                (raw_id, session["email"])
             ).fetchone()
             conn.close()
             if row:
                 result = dict(row)
+                from datetime import datetime as dt
+                result["formatted_id"] = f"CG-{dt.now().year}-{result['id']:05d}"
             else:
                 error = "No complaint found with that ID for your account."
-        log_activity("track_complaint", f"Tracked ID: {cid}")
+        log_activity("track_complaint", f"Tracked: {cid}")
     return render_template("track.html", result=result, error=error,
                            username=session.get("name"))
 

@@ -51,7 +51,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
 
       <form method="POST" action="/track">
         <div class="track-form">
-          <input type="text" name="complaint_id" placeholder="Enter Complaint ID (e.g. 12)"
+          <input type="text" name="complaint_id" placeholder="Enter ID e.g. CG-2026-00042"
             value="{{ request.form.get('complaint_id','') }}" required>
           <button type="submit">Track →</button>
         </div>
@@ -65,7 +65,7 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
       <div class="result-card">
         <div class="result-row">
           <span class="lbl">Complaint ID</span>
-          <span class="val">#{{ result.id }}</span>
+          <span class="val" style="color:#1b3a57;font-family:monospace;font-size:16px;letter-spacing:1px;">{{ result.formatted_id or ("#" ~ result.id) }}</span>
         </div>
         <div class="result-row">
           <span class="lbl">Complainant</span>

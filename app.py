@@ -158,7 +158,7 @@ def register_user():
     except sqlite3.IntegrityError:
         conn.close()
         log_activity("register_failed", f"Duplicate email: {email}", user_email=email)
-        return jsonify({"status":"error","message":"Email already registered."})
+        return jsonify({"status":"duplicate","message":"This account is already registered. Redirecting to login..."})
     conn.close()
     log_activity("register", f"New user registered: {name}", user_email=email)
     return jsonify({"status":"success","message":"Your account has been successfully created in the Cyber Crime Portal."})

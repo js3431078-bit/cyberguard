@@ -122,7 +122,15 @@ tr:hover td{background:#f8fafc;}
   <div class="navbar-logo-wrap">
     <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
   </div>
-  <a href="/home">← Back to Home</a>
+  <ul id="navMenuContact">
+    <li><a href="/home">Home</a></li>
+    <li><a href="/about">About</a></li>
+    <li><a href="/complaint">Report Incident</a></li>
+    <li><a href="/logout">Logout</a></li>
+  </ul>
+  <button class="navbar-toggle" onclick="document.getElementById('navMenuContact').classList.toggle('open')" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
 </div>
 
 <div class="hero">

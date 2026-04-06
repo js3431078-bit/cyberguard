@@ -192,7 +192,14 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
   <div class="navbar-logo-wrap">
     <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard Portal" class="navbar-logo">
   </div>
-  <a href="/home">← Home</a>
+  <ul id="navMenuComplaint">
+    <li><a href="/home">Home</a></li>
+    <li><a href="/track">Track Complaint</a></li>
+    <li><a href="/logout">Logout</a></li>
+  </ul>
+  <button class="navbar-toggle" onclick="document.getElementById('navMenuComplaint').classList.toggle('open')" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
 </div>
 
 <div class="page">

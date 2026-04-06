@@ -233,7 +233,14 @@ select.ss:hover{border-color:#1b3a57;}
 /* ── DESKTOP: always show full navbar, never hamburger ── */
 @media(min-width:769px){
   .navbar-toggle{display:none !important;}
-  .navbar ul{display:flex !important;flex-direction:row !important;position:static !important;background:none !important;padding:0 !important;box-shadow:none !important;}
+  .navbar ul{display:flex !important;flex-direction:row !important;position:static !important;background:none !important;padding:0 !important;box-shadow:none !important;gap:6px !important;}
+}
+
+/* ── MOBILE: hide nav links by default, show hamburger ── */
+@media(max-width:768px){
+  .navbar ul{display:none !important;}
+  .navbar ul.open{display:flex !important;}
+  .navbar-toggle{display:flex !important;}
 }
 
 /* ── MEDIUM DESKTOP / LAPTOP (900px-1100px) ── */

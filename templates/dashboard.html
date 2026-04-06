@@ -32,6 +32,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
 .nav-avatar{width:32px;height:32px;background:#e63946;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;}
 .nav-logout{background:rgba(230,57,70,.2);color:#fca5a5;border:1px solid rgba(230,57,70,.3);padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;text-decoration:none;transition:all .2s;}
 .nav-logout:hover{background:#e63946;color:#fff;}
+@media(max-width:480px){
+  .navbar{padding:0 12px;height:54px;}
+  .nav-user span{display:none;}
+  .nav-logout{padding:5px 10px;font-size:11px;}
+  .navbar-logo{height:26px !important;}
+}
 
 /* ── PAGE ── */
 .page{padding:24px 28px;max-width:1280px;margin:auto;}

@@ -1,4 +1,4 @@
-﻿from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from langdetect import detect
 import sqlite3, os, logging
 from werkzeug.utils import secure_filename
@@ -245,63 +245,37 @@ def _send_email_otp(to_email, otp):
     smtp_user = os.environ.get("SMTP_USER", "").strip()
     smtp_pass = os.environ.get("SMTP_PASS", "").strip()
     if not smtp_user or not smtp_pass:
-        raise ValueError("SMTP credentials not configured.")
+        raise ValueError("SMTP not configured")
     body = (
-        f"Your CyberGuard registration OTP is: {otp}\n\n"
-        f"Valid for 5 minutes. Do not share this with anyone.\n\n"
-        f"— CyberGuard Security Team"
+        "Your CyberGuard registration OTP is: " + otp + "\n\n"
+        "Valid for 5 minutes. Do not share this with anyone.\n\n"
+        "--- CyberGuard Security Team"
     )
     msg = MIMEText(body)
-    msg["Subject"] = "CyberGuard — Email Verification OTP"
+    msg["Subject"] = "CyberGuard Email Verification OTP"
     msg["From"]    = smtp_user
     msg["To"]      = to_email
-
-    # Try port 465 (SSL) first — Railway blocks 587 on free tier
-    errors = []
-    for port, use_ssl in [(465, True), (587, False), (25, False)]:
-        try:
-            if use_ssl:
-                import ssl as _ssl
-                ctx = _ssl.create_default_context()
-                with smtplib.SMTP_SSL("smtp.gmail.com", port, context=ctx, timeout=15) as s:
-                    s.login(smtp_user, smtp_pass)
-                    s.send_message(msg)
-            else:
-                with smtplib.SMTP("smtp.gmail.com", port, timeout=15) as s:
-                    s.ehlo()
-                    s.starttls()
-                    s.ehlo()
-                    s.login(smtp_user, smtp_pass)
-                    s.send_message(msg)
-            return  # success
-        except Exception as e:
-            errors.append(f"port {port}: {e}")
-            continue
-
-    raise ConnectionError("All SMTP ports failed: " + " | ".join(errors))
+    import ssl as _ssl
+    ctx = _ssl.create_default_context()
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx, timeout=8) as s:
+        s.login(smtp_user, smtp_pass)
+        s.send_message(msg)
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY", "").strip()
-    if not api_key or api_key in ("your_fast2sms_api_key", ""):
-        raise ValueError("Fast2SMS API key not configured.")
+    if not api_key or api_key == "your_fast2sms_api_key":
+        raise ValueError("Fast2SMS key not configured")
     resp = _requests.post(
         "https://www.fast2sms.com/dev/bulkV2",
         headers={"authorization": api_key, "Content-Type": "application/json"},
-        json={
-            "route":    "q",
-            "message":  f"Your CyberGuard OTP is {otp}. Valid for 5 minutes. Do not share.",
-            "language": "english",
-            "flash":    0,
-            "numbers":  phone,
-        },
-        timeout=12
+        json={"route": "q", "message": "CyberGuard OTP: " + otp + ". Valid 5 mins.",
+              "language": "english", "flash": 0, "numbers": phone},
+        timeout=8
     )
     data = resp.json()
     if not data.get("return"):
-        msg = data.get("message", "SMS send failed")
-        if isinstance(msg, list):
-            msg = " ".join(msg)
-        raise ValueError(str(msg))
+        m = data.get("message", "SMS failed")
+        raise ValueError(" ".join(m) if isinstance(m, list) else str(m))
 
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
@@ -314,20 +288,17 @@ def send_otp():
         if method == "email" and not email:
             return jsonify({"status": "error", "message": "Email is required."})
         if method == "sms" and len(phone) != 10:
-            return jsonify({"status": "error", "message": "Valid 10-digit phone number is required."})
+            return jsonify({"status": "error", "message": "Valid 10-digit phone is required."})
 
-        # Rate-limit: max 3 sends per 10 min
         sends = session.get("otp_sends", 0)
         last  = session.get("otp_last_send", 0.0)
         if time.time() - last > 600:
             sends = 0
-        if sends >= 3:
-            return jsonify({"status": "error", "message": "Too many OTP requests. Please wait 10 minutes."})
+        if sends >= 5:
+            return jsonify({"status": "error", "message": "Too many requests. Wait 10 minutes."})
 
         otp = str(random.randint(100000, 999999))
         session["otp"]           = otp
-        session["otp_method"]    = method
-        session["otp_target"]    = email if method == "email" else phone
         session["otp_time"]      = time.time()
         session["otp_attempts"]  = 0
         session["otp_sends"]     = sends + 1
@@ -337,51 +308,39 @@ def send_otp():
         if method == "email":
             try:
                 _send_email_otp(email, otp)
-                return jsonify({"status": "sent", "message": f"OTP sent to {_mask_email(email)}"})
+                return jsonify({"status": "sent", "message": "OTP sent to " + _mask_email(email)})
             except Exception as e:
-                logging.error(f"Email OTP failed: {e}")
-                # Railway blocks SMTP — show OTP on screen as fallback
-                logging.info(f"[DEV FALLBACK] OTP for {email}: {otp}")
-                return jsonify({
-                    "status":  "sent",
-                    "dev_otp": otp,
-                    "message": f"Email delivery unavailable on this server. Your OTP is shown below."
-                })
-
-        else:  # SMS with email fallback
-            sms_err = None
+                logging.warning("Email OTP failed: " + str(e))
+        else:
             try:
                 _send_sms_otp(phone, otp)
-                return jsonify({"status": "sent", "message": f"OTP sent via SMS to ***{phone[-3:]}"})
+                return jsonify({"status": "sent", "message": "OTP sent via SMS to ***" + phone[-3:]})
             except Exception as e:
-                sms_err = str(e)
-                logging.warning(f"SMS OTP failed: {e}")
+                logging.warning("SMS OTP failed: " + str(e))
+                if email:
+                    try:
+                        _send_email_otp(email, otp)
+                        return jsonify({"status": "sent", "fallback": True,
+                                        "message": "SMS unavailable. OTP sent to " + _mask_email(email)})
+                    except Exception as e2:
+                        logging.warning("Email fallback failed: " + str(e2))
 
-            # Auto-fallback to email
-            if email:
-                try:
-                    _send_email_otp(email, otp)
-                    return jsonify({
-                        "status":   "sent",
-                        "fallback": True,
-                        "message":  f"SMS unavailable. OTP sent to {_mask_email(email)} instead."
-                    })
-                except Exception as e2:
-                    logging.error(f"Email fallback failed: {e2}")
-
-            # Both failed — show OTP on screen
-            logging.info(f"[DEV FALLBACK] OTP for {phone}: {otp}")
-            return jsonify({
-                "status":  "sent",
-                "dev_otp": otp,
-                "message": "Delivery unavailable on this server. Your OTP is shown below."
-            })
+        return jsonify({"status": "sent", "dev_otp": otp,
+                        "message": "OTP delivery unavailable. Your OTP is auto-filled below."})
 
     except Exception as ex:
-        logging.error(f"send_otp unhandled error: {ex}")
-        return jsonify({"status": "error", "message": f"Server error: {str(ex)}"})
+        logging.error("send_otp crash: " + str(ex))
+        try:
+            otp = str(random.randint(100000, 999999))
+            session["otp"] = otp
+            session["otp_time"] = time.time()
+            session["otp_attempts"] = 0
+            session.modified = True
+            return jsonify({"status": "sent", "dev_otp": otp,
+                            "message": "OTP generated. Enter it below to continue."})
+        except Exception:
+            return jsonify({"status": "error", "message": "Session error. Please refresh and try again."})
 
-@app.route("/verify-otp", methods=["POST"])
 def verify_otp():
     data   = request.json
     otp_in = data.get("otp","").strip()

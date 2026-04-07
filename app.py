@@ -39,6 +39,14 @@ def init_db():
         password TEXT NOT NULL,
         created  TEXT DEFAULT (datetime('now','localtime'))
     );
+    CREATE TABLE IF NOT EXISTS otp_store(
+        id        INTEGER PRIMARY KEY AUTOINCREMENT,
+        token     TEXT UNIQUE NOT NULL,
+        otp       TEXT NOT NULL,
+        created   REAL NOT NULL,
+        attempts  INTEGER DEFAULT 0,
+        verified  INTEGER DEFAULT 0
+    );
     CREATE TABLE IF NOT EXISTS complaints(
         id          INTEGER PRIMARY KEY AUTOINCREMENT,
         user_email  TEXT,
@@ -298,8 +306,103 @@ def send_otp():
             return jsonify({"status": "error", "message": "Too many requests. Wait 10 minutes."})
 
         otp = str(random.randint(100000, 999999))
-        session["otp"]           = otp
-        session["otp_time"]      = time.time()
+        import secrets as _secrets
+        token = _secrets.token_hex(16)
+
+        # Store OTP in DB — avoids cookie size/session loss issues
+        conn = get_db()
+        conn.execute("DELETE FROM otp_store WHERE created < ?", (time.time() - 600,))
+        conn.execute("INSERT OR REPLACE INTO otp_store(token,otp,created,attempts,verified) VALUES(?,?,?,0,0)",
+                     (token, otp, time.time()))
+        conn.commit()
+        conn.close()
+
+        # Only tiny token in session cookie
+        session["otp_token"]     = token
+        session["otp_sends"]     = sends + 1
+        session["otp_last_send"] = time.time()
+        session.modified         = True
+
+        delivered = False
+        if method == "email":
+            try:
+                _send_email_otp(email, otp)
+                delivered = True
+                return jsonify({"status": "sent", "message": "OTP sent to " + _mask_email(email)})
+            except Exception as e:
+                logging.warning("Email OTP failed: " + str(e))
+        else:
+            try:
+                _send_sms_otp(phone, otp)
+                delivered = True
+                return jsonify({"status": "sent", "message": "OTP sent via SMS to ***" + phone[-3:]})
+            except Exception as e:
+                logging.warning("SMS OTP failed: " + str(e))
+                if email:
+                    try:
+                        _send_email_otp(email, otp)
+                        delivered = True
+                        return jsonify({"status": "sent", "fallback": True,
+                                        "message": "SMS unavailable. OTP sent to " + _mask_email(email)})
+                    except Exception as e2:
+                        logging.warning("Email fallback failed: " + str(e2))
+
+        if not delivered:
+            conn = get_db()
+            conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+            conn.commit(); conn.close()
+            session.pop("otp_token", None)
+            session.modified = True
+            return jsonify({"status": "error",
+                            "message": "Could not send OTP. Please use Email OTP and ensure SMTP is configured."})
+
+    except Exception as ex:
+        logging.error("send_otp crash: " + str(ex))
+        return jsonify({"status": "error", "message": "Server error. Please refresh and try again."})
+
+@app.route("/verify-otp", methods=["POST"])
+def verify_otp():
+    try:
+        data   = request.json or {}
+        otp_in = data.get("otp", "").strip()
+        token  = session.get("otp_token", "")
+
+        if not token:
+            return jsonify({"status": "error", "message": "Session expired. Please request a new OTP."})
+
+        conn = get_db()
+        row  = conn.execute("SELECT otp, created, attempts FROM otp_store WHERE token=? AND verified=0",
+                            (token,)).fetchone()
+        if not row:
+            conn.close()
+            return jsonify({"status": "error", "message": "OTP not found. Please request a new one."})
+
+        attempts = row["attempts"]
+        if attempts >= 5:
+            conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+            conn.commit(); conn.close()
+            return jsonify({"status": "error", "message": "Too many wrong attempts. Request a new OTP."})
+
+        if time.time() - row["created"] > 300:
+            conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+            conn.commit(); conn.close()
+            return jsonify({"status": "error", "message": "OTP expired. Please request a new one."})
+
+        if otp_in != row["otp"]:
+            conn.execute("UPDATE otp_store SET attempts=? WHERE token=?", (attempts + 1, token))
+            conn.commit(); conn.close()
+            left = 4 - attempts
+            return jsonify({"status": "error", "message": f"Incorrect OTP. {left} attempt(s) left."})
+
+        conn.execute("UPDATE otp_store SET verified=1 WHERE token=?", (token,))
+        conn.commit(); conn.close()
+        session["otp_verified"] = True
+        session.modified = True
+        return jsonify({"status": "verified", "message": "OTP verified successfully."})
+
+    except Exception as ex:
+        logging.error("verify_otp error: " + str(ex))
+        return jsonify({"status": "error", "message": "Verification error. Please try again."})
         session["otp_attempts"]  = 0
         session["otp_sends"]     = sends + 1
         session["otp_last_send"] = time.time()
@@ -340,35 +443,6 @@ def send_otp():
                             "message": "OTP generated. Enter it below to continue."})
         except Exception:
             return jsonify({"status": "error", "message": "Session error. Please refresh and try again."})
-
-def verify_otp():
-    data   = request.json
-    otp_in = data.get("otp","").strip()
-
-    stored_otp  = session.get("otp","")
-    stored_time = session.get("otp_time", 0)
-    attempts    = session.get("otp_attempts", 0)
-
-    if not stored_otp:
-        return jsonify({"status":"error","message":"No OTP found. Please request a new one."})
-    if attempts >= 5:
-        session.pop("otp", None)
-        return jsonify({"status":"error","message":"Too many wrong attempts. Request a new OTP."})
-    if time.time() - stored_time > 300:
-        session.pop("otp", None)
-        return jsonify({"status":"error","message":"OTP expired. Please request a new one."})
-    if otp_in != stored_otp:
-        session["otp_attempts"] = attempts + 1
-        left = 5 - session["otp_attempts"]
-        return jsonify({"status":"error","message":f"Incorrect OTP. {left} attempt(s) left."})
-
-    # Clear OTP, mark verified
-    session.pop("otp", None)
-    session.pop("otp_time", None)
-    session.pop("otp_attempts", None)
-    session["otp_verified"] = True
-    return jsonify({"status":"verified","message":"OTP verified successfully."})
-
 
 @app.route("/register", methods=["POST"])
 def register_user():

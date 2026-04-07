@@ -402,7 +402,9 @@ function sendOTP(resend){
     if(d.status==="sent"){
       document.getElementById("otpSection").style.display="block";
       document.getElementById("verifyOtpBtn").style.display="block";
-      document.getElementById("otpSentMsg").textContent=d.message;
+      var sentMsg = d.message;
+      if(d.fallback) sentMsg = "⚠️ " + sentMsg;
+      document.getElementById("otpSentMsg").textContent=sentMsg;
       document.getElementById("otpErr").className="ferr";
       if(resend)document.getElementById("otpInput").value="";
       document.getElementById("otpInput").focus();

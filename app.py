@@ -253,29 +253,29 @@ def _send_email_otp(to_email, otp):
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY","")
-    if not api_key:
+    if not api_key or api_key == "your_fast2sms_api_key":
         raise ValueError("Fast2SMS key not configured")
-    resp = _requests.get(
+    # Fast2SMS Quick SMS route (works without DLT registration)
+    resp = _requests.post(
         "https://www.fast2sms.com/dev/bulkV2",
-        headers={"authorization": api_key},
-        params={
-            "route":            "v3",
-            "sender_id":        "FTSMS",
-            "message":          f"Your CyberGuard OTP is {otp}. Valid for 5 minutes.",
-            "language":         "english",
-            "flash":            0,
-            "numbers":          phone,
+        headers={"authorization": api_key, "Content-Type": "application/json"},
+        json={
+            "route":             "q",
+            "message":           f"Your CyberGuard OTP is {otp}. Valid for 5 minutes. Do not share.",
+            "language":          "english",
+            "flash":             0,
+            "numbers":           phone,
         },
         timeout=10
     )
     data = resp.json()
     if not data.get("return"):
-        raise ValueError(str(data.get("message", "SMS send failed")))
+        raise ValueError(str(data.get("message", ["SMS send failed"])[0] if isinstance(data.get("message"), list) else data.get("message","SMS send failed")))
 
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
     data    = request.json
-    method  = data.get("method","email")   # "email" or "sms"
+    method  = data.get("method","email")
     email   = data.get("email","").strip()
     phone   = data.get("phone","").strip()
 
@@ -301,19 +301,42 @@ def send_otp():
     session["otp_sends"]     = session.get("otp_sends", 0) + 1
     session["otp_last_send"] = time.time()
 
-    try:
-        if method == "email":
+    if method == "email":
+        try:
             _send_email_otp(email, otp)
-            return jsonify({"status":"sent","message":f"OTP sent to {email[:3]}***{email[email.index('@'):]}"})
-        else:
+            masked = email[:3] + "***" + email[email.index("@"):]
+            return jsonify({"status":"sent","message":f"OTP sent to {masked}"})
+        except Exception as e:
+            logging.error(f"Email OTP failed: {e}")
+            # Clear OTP so user can retry
+            session.pop("otp", None)
+            return jsonify({"status":"error","message":"Failed to send email OTP. Check your SMTP settings in Railway Variables."})
+    else:
+        # SMS — try Fast2SMS, auto-fallback to email if SMS fails
+        sms_error = None
+        try:
             _send_sms_otp(phone, otp)
-            return jsonify({"status":"sent","message":f"OTP sent to ***{phone[-3:]}"})
-    except ValueError as ve:
-        logging.warning(f"OTP send config error: {ve}")
-        return jsonify({"status":"error","message":str(ve)})
-    except Exception as e:
-        logging.error(f"OTP send failed: {e}")
-        return jsonify({"status":"error","message":"Failed to send OTP. Check your credentials."})
+            return jsonify({"status":"sent","message":f"OTP sent via SMS to ***{phone[-3:]}"})
+        except Exception as e:
+            sms_error = str(e)
+            logging.warning(f"SMS OTP failed: {e}")
+
+        # SMS failed — try email fallback if email provided
+        if email:
+            try:
+                _send_email_otp(email, otp)
+                masked = email[:3] + "***" + email[email.index("@"):]
+                return jsonify({
+                    "status":  "sent",
+                    "message": f"SMS unavailable. OTP sent to your email {masked} instead.",
+                    "fallback": True
+                })
+            except Exception as e2:
+                logging.error(f"Email fallback also failed: {e2}")
+
+        # Both failed
+        session.pop("otp", None)
+        return jsonify({"status":"error","message":f"Could not send OTP. SMS error: {sms_error}. Please use Email OTP instead."})
 
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():

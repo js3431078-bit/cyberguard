@@ -1088,18 +1088,20 @@ CyberGuard Team
         logging.warning(f"Email send failed (non-critical): {e}")
 
 
-
+def _log_ai(msg, reply, hindi=False):
+    """Log chatbot AI interaction to ai_analysis_logs."""
     try:
         r = analyze_text(msg.lower())
-        if r["crime"] != "Other Cyber Crime":
-            conn = get_db()
-            conn.execute(
-                "INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES(?,?,?,?,?,?,?,?)",
-                (session.get("email","anonymous"), msg[:500], r["crime"], r["category"],
-                 r["threat"], r["confidence"], "hi" if hindi else "en", "chatbot")
-            )
-            conn.commit(); conn.close()
-    except Exception: pass
+        conn = get_db()
+        conn.execute(
+            "INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES(?,?,?,?,?,?,?,?)",
+            (session.get("email","anonymous"), msg[:500], r["crime"], r["category"],
+             r["threat"], r["confidence"], "hi" if hindi else "en", "chatbot")
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
 
 
 def _smart_reply(msg, hindi):

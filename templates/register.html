@@ -366,18 +366,8 @@ body{
       <!-- STEP 2: OTP -->
       <div id="otpBlock">
         <div class="step-lbl">📱 Step 2 — OTP Verification</div>
-        <div class="method-g">
-          <label class="mcard">
-            <input type="radio" name="otpMethod" value="email" checked onchange="updateOtpHint()">
-            📧 Email OTP
-          </label>
-          <label class="mcard">
-            <input type="radio" name="otpMethod" value="sms" onchange="updateOtpHint()">
-            📱 SMS OTP
-          </label>
-        </div>
-        <div id="otpHint" style="font-size:11px;color:#64748b;margin-bottom:6px;"></div>
-        <button type="button" class="btn-outline" id="sendOtpBtn" onclick="sendOTP()">📤 Send OTP</button>
+        <div style="font-size:11px;color:#64748b;margin-bottom:8px;">OTP will be sent to your email address.</div>
+        <button type="button" class="btn-outline" id="sendOtpBtn" onclick="sendOTP()">📤 Send OTP to Email</button>
 
         <div class="otp-box" id="otpSection" style="display:none;">
           <div class="ol">🔐 Enter the 6-digit OTP</div>
@@ -488,15 +478,12 @@ updateOtpHint();
 
 function sendOTP(resend){
   if(!captchaVerified){alert("Please complete CAPTCHA verification first (Step 1).");return;}
-  var method=getMethod();
   var email=document.getElementById("email").value.trim();
-  var phone=document.getElementById("phone").value.trim();
-  if(method==="email"&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert("Enter a valid email first.");return;}
-  if(method==="sms"&&phone.length!==10){alert("Enter a valid 10-digit phone number first.");return;}
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert("Please enter a valid email address first.");return;}
   var btn=document.getElementById("sendOtpBtn");
   btn.textContent="Sending…";btn.disabled=true;
   fetch("/send-otp",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({method:method,email:email,phone:phone})})
+    body:JSON.stringify({method:"email",email:email,phone:""})})
   .then(function(r){return r.json();})
   .then(function(d){
     if(d.status==="sent"){

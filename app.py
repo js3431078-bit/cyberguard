@@ -337,30 +337,45 @@ def send_otp():
                 return jsonify({"status": "sent", "message": "OTP sent to " + _mask_email(email)})
             except Exception as e:
                 logging.warning("Email OTP failed: " + str(e))
+                # Delete token and return clear error
+                conn = get_db()
+                conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+                conn.commit(); conn.close()
+                session.pop("otp_token", None)
+                session.modified = True
+                return jsonify({"status": "error", "message": "Failed to send OTP: " + str(e)})
         else:
+            # SMS selected — try SMS first, then auto-fallback to email via Resend
+            sms_ok = False
             try:
                 _send_sms_otp(phone, otp)
-                delivered = True
+                sms_ok = True
                 return jsonify({"status": "sent", "message": "OTP sent via SMS to ***" + phone[-3:]})
             except Exception as e:
                 logging.warning("SMS OTP failed: " + str(e))
-                if email:
-                    try:
-                        _send_email_otp(email, otp)
-                        delivered = True
-                        return jsonify({"status": "sent", "fallback": True,
-                                        "message": "SMS unavailable. OTP sent to " + _mask_email(email)})
-                    except Exception as e2:
-                        logging.warning("Email fallback failed: " + str(e2))
 
-        if not delivered:
+            if not sms_ok and email:
+                try:
+                    _send_email_otp(email, otp)
+                    return jsonify({"status": "sent", "fallback": True,
+                                    "message": "SMS unavailable. OTP sent to " + _mask_email(email)})
+                except Exception as e2:
+                    logging.warning("Email fallback failed: " + str(e2))
+                    conn = get_db()
+                    conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+                    conn.commit(); conn.close()
+                    session.pop("otp_token", None)
+                    session.modified = True
+                    return jsonify({"status": "error",
+                                    "message": "SMS failed and email fallback also failed. Please select Email OTP manually."})
+
             conn = get_db()
             conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
             conn.commit(); conn.close()
             session.pop("otp_token", None)
             session.modified = True
             return jsonify({"status": "error",
-                            "message": "Could not send OTP. Please use Email OTP and ensure SMTP is configured."})
+                            "message": "SMS failed. Please enter your email and select Email OTP."})
 
     except Exception as ex:
         logging.error("send_otp crash: " + str(ex))

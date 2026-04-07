@@ -144,27 +144,7 @@ body.dark{
       <div class="ferr" id="captchaErr">Incorrect answer. Please try again.</div>
     </div>
 
-    <!-- OTP Section -->
-    <div class="f" id="otpSection" style="display:none;">
-      <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:9px;padding:14px;">
-        <div style="font-size:13px;font-weight:700;color:#15803d;margin-bottom:8px;">📧 OTP Verification</div>
-        <div style="font-size:12px;color:#64748b;margin-bottom:10px;">A 6-digit OTP has been sent to your email address.</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input type="text" id="otpInput" placeholder="Enter 6-digit OTP" maxlength="6"
-            oninput="this.value=this.value.replace(/[^0-9]/g,'')"
-            style="flex:1;padding:10px 14px;border:1.5px solid #bbf7d0;border-radius:8px;font-size:16px;font-weight:700;letter-spacing:4px;text-align:center;outline:none;font-family:monospace;">
-          <button type="button" id="resendBtn" onclick="sendOTP(true)"
-            style="padding:10px 14px;background:#1b3a57;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
-            Resend
-          </button>
-        </div>
-        <div class="ferr" id="otpErr" style="margin-top:6px;">Incorrect OTP. Please try again.</div>
-        <div id="otpTimer" style="font-size:11px;color:#94a3b8;margin-top:6px;"></div>
-      </div>
-    </div>
-
-    <button type="button" class="btn-reg" id="sendOtpBtn" onclick="sendOTP(false)">📧 Send OTP & Verify</button>
-    <button type="submit" class="btn-reg" id="regBtn" style="display:none;margin-top:8px;">✅ Create Account</button>
+    <button type="submit" class="btn-reg" id="regBtn">✅ Create Account</button>
 
   </form>
 
@@ -225,71 +205,6 @@ function vCaptcha() {
   return ok;
 }
 
-// ── OTP ──
-var otpVerified = false;
-var otpTimer = null;
-
-function sendOTP(resend) {
-  var n=vName(), em=vEmail(), ph=vPhone(), pw=vPass(), cp=vCpass();
-  var terms = document.getElementById("terms").checked;
-  if (!terms) { document.getElementById("termsErr").className="ferr on"; return; }
-  document.getElementById("termsErr").className="ferr";
-  if (!n||!em||!ph||!pw||!cp) return;
-  if (!vCaptcha()) { document.getElementById("captchaErr").className="ferr on"; return; }
-
-  var btn = document.getElementById("sendOtpBtn");
-  btn.textContent = "Sending OTP...";
-  btn.disabled = true;
-
-  fetch("/send-otp", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
-    body: JSON.stringify({email: document.getElementById("email").value.trim()})
-  })
-  .then(function(r){ return r.json(); })
-  .then(function(d){
-    if (d.status === "sent") {
-      document.getElementById("otpSection").style.display = "block";
-      document.getElementById("sendOtpBtn").style.display = "none";
-      document.getElementById("regBtn").style.display = "block";
-      startOtpTimer(120);
-      if (resend) {
-        document.getElementById("otpInput").value = "";
-        document.getElementById("otpErr").className = "ferr";
-      }
-    } else {
-      alert(d.message || "Failed to send OTP.");
-      btn.textContent = "📧 Send OTP & Verify";
-      btn.disabled = false;
-    }
-  })
-  .catch(function(){
-    // Fallback: show OTP section anyway (demo mode)
-    document.getElementById("otpSection").style.display = "block";
-    document.getElementById("sendOtpBtn").style.display = "none";
-    document.getElementById("regBtn").style.display = "block";
-    startOtpTimer(120);
-  });
-}
-
-function startOtpTimer(seconds) {
-  clearInterval(otpTimer);
-  var el = document.getElementById("otpTimer");
-  var remaining = seconds;
-  el.textContent = "OTP expires in " + remaining + "s";
-  otpTimer = setInterval(function(){
-    remaining--;
-    if (remaining <= 0) {
-      clearInterval(otpTimer);
-      el.textContent = "OTP expired. Please resend.";
-      el.style.color = "#e63946";
-    } else {
-      el.textContent = "OTP expires in " + remaining + "s";
-      el.style.color = "#94a3b8";
-    }
-  }, 1000);
-}
-
 function doRegister(e) {
   e.preventDefault();
   var n=vName(), em=vEmail(), ph=vPhone(), pw=vPass(), cp=vCpass();
@@ -299,73 +214,40 @@ function doRegister(e) {
   if (!n||!em||!ph||!pw||!cp) return;
   if (!vCaptcha()) { document.getElementById("captchaErr").className="ferr on"; return; }
 
-  var otp = document.getElementById("otpInput").value.trim();
-  if (!otp || otp.length !== 6) {
-    document.getElementById("otpErr").className = "ferr on";
-    document.getElementById("otpErr").textContent = "Please enter the 6-digit OTP.";
-    return;
-  }
-
   var btn = document.getElementById("regBtn");
-  btn.textContent = "Verifying...";
+  btn.textContent = "Creating account...";
   btn.disabled = true;
 
-  // Verify OTP first, then register
-  fetch("/verify-otp", {
-    method: "POST",
-    headers: {"Content-Type":"application/json"},
+  fetch("/register", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
+      name: document.getElementById("name").value.trim(),
       email: document.getElementById("email").value.trim(),
-      otp: otp
+      phone: document.getElementById("phone").value.trim(),
+      password: document.getElementById("password").value
     })
   })
   .then(function(r){ return r.json(); })
   .then(function(d){
-    if (d.status !== "verified") {
-      document.getElementById("otpErr").className = "ferr on";
-      document.getElementById("otpErr").textContent = d.message || "Incorrect OTP.";
+    if (d.status === "success") {
+      btn.innerHTML = "✅ Account Created!";
+      btn.style.background = "#22c55e";
+      setTimeout(function(){ window.location.href="/login"; }, 1200);
+    } else if (d.status === "duplicate") {
+      btn.innerHTML = "⚠️ Already Registered";
+      btn.style.background = "#f97316";
+      btn.disabled = false;
+      var st = document.createElement("div");
+      st.style.cssText = "margin-top:12px;padding:12px 16px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;color:#c2410c;font-size:13px;font-weight:600;text-align:center;";
+      st.textContent = d.message;
+      document.getElementById("regForm").appendChild(st);
+      setTimeout(function(){ window.location.href="/login"; }, 2500);
+    } else {
+      alert(d.message);
       btn.textContent = "✅ Create Account";
       btn.disabled = false;
-      return;
     }
-    // OTP verified — now register
-    btn.textContent = "Creating account...";
-    fetch("/register", {
-      method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({
-        name: document.getElementById("name").value.trim(),
-        email: document.getElementById("email").value.trim(),
-        phone: document.getElementById("phone").value.trim(),
-        password: document.getElementById("password").value
-      })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(d){
-      if (d.status === "success") {
-        btn.innerHTML = "✅ Account Created!";
-        btn.style.background = "#22c55e";
-        setTimeout(function(){ window.location.href="/login"; }, 1200);
-      } else if (d.status === "duplicate") {
-        btn.innerHTML = "⚠️ Already Registered";
-        btn.style.background = "#f97316";
-        btn.disabled = false;
-        var st = document.createElement("div");
-        st.style.cssText = "margin-top:12px;padding:12px 16px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;color:#c2410c;font-size:13px;font-weight:600;text-align:center;";
-        st.textContent = d.message;
-        document.getElementById("regForm").appendChild(st);
-        setTimeout(function(){ window.location.href="/login"; }, 2500);
-      } else {
-        alert(d.message);
-        btn.textContent = "✅ Create Account";
-        btn.disabled = false;
-      }
-    })
-    .catch(function(){
-      alert("Server error. Try again.");
-      btn.textContent = "✅ Create Account";
-      btn.disabled = false;
-    });
   })
   .catch(function(){
     alert("Server error. Try again.");

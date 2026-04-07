@@ -515,7 +515,11 @@ function sendOTP(resend){
       btn.textContent="📤 Send OTP";btn.disabled=false;
     }
   })
-  .catch(function(){alert("Server error. Please try again.");btn.textContent="📤 Send OTP";btn.disabled=false;});
+  .catch(function(err){
+    console.error("send-otp fetch error:",err);
+    alert("Network error. Please check your connection and try again.");
+    btn.textContent="📤 Send OTP";btn.disabled=false;
+  });
 }
 
 function startOtpTimer(sec){

@@ -233,110 +233,130 @@ def verify_captcha():
 import smtplib, requests as _requests
 from email.mime.text import MIMEText
 
+def _mask_email(email):
+    """Safely mask email for display."""
+    try:
+        at = email.index("@")
+        return email[:min(3, at)] + "***" + email[at:]
+    except Exception:
+        return "***"
+
 def _send_email_otp(to_email, otp):
-    smtp_user = os.environ.get("SMTP_USER","")
-    smtp_pass = os.environ.get("SMTP_PASS","")
+    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    smtp_pass = os.environ.get("SMTP_PASS", "").strip()
     if not smtp_user or not smtp_pass:
-        raise ValueError("SMTP not configured")
-    msg = MIMEText(
+        raise ValueError("SMTP credentials not configured in environment variables.")
+    body = (
         f"Your CyberGuard registration OTP is: {otp}\n\n"
         f"Valid for 5 minutes. Do not share this with anyone.\n\n"
         f"— CyberGuard Security Team"
     )
+    msg = MIMEText(body)
     msg["Subject"] = "CyberGuard — Email Verification OTP"
     msg["From"]    = smtp_user
     msg["To"]      = to_email
-    with smtplib.SMTP("smtp.gmail.com", 587) as s:
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as s:
+        s.ehlo()
         s.starttls()
+        s.ehlo()
         s.login(smtp_user, smtp_pass)
         s.send_message(msg)
 
 def _send_sms_otp(phone, otp):
-    api_key = os.environ.get("FAST2SMS_KEY","")
-    if not api_key or api_key == "your_fast2sms_api_key":
-        raise ValueError("Fast2SMS key not configured")
-    # Fast2SMS Quick SMS route (works without DLT registration)
+    api_key = os.environ.get("FAST2SMS_KEY", "").strip()
+    if not api_key or api_key in ("your_fast2sms_api_key", ""):
+        raise ValueError("Fast2SMS API key not configured.")
     resp = _requests.post(
         "https://www.fast2sms.com/dev/bulkV2",
         headers={"authorization": api_key, "Content-Type": "application/json"},
         json={
-            "route":             "q",
-            "message":           f"Your CyberGuard OTP is {otp}. Valid for 5 minutes. Do not share.",
-            "language":          "english",
-            "flash":             0,
-            "numbers":           phone,
+            "route":    "q",
+            "message":  f"Your CyberGuard OTP is {otp}. Valid for 5 minutes. Do not share.",
+            "language": "english",
+            "flash":    0,
+            "numbers":  phone,
         },
-        timeout=10
+        timeout=12
     )
     data = resp.json()
     if not data.get("return"):
-        raise ValueError(str(data.get("message", ["SMS send failed"])[0] if isinstance(data.get("message"), list) else data.get("message","SMS send failed")))
+        msg = data.get("message", "SMS send failed")
+        if isinstance(msg, list):
+            msg = " ".join(msg)
+        raise ValueError(str(msg))
 
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
-    data    = request.json
-    method  = data.get("method","email")
-    email   = data.get("email","").strip()
-    phone   = data.get("phone","").strip()
+    try:
+        data   = request.json or {}
+        method = data.get("method", "email").strip()
+        email  = data.get("email", "").strip()
+        phone  = data.get("phone", "").strip()
 
-    if method == "email" and not email:
-        return jsonify({"status":"error","message":"Email is required."})
-    if method == "sms" and (not phone or len(phone) != 10):
-        return jsonify({"status":"error","message":"Valid 10-digit phone is required."})
+        if method == "email" and not email:
+            return jsonify({"status": "error", "message": "Email is required."})
+        if method == "sms" and len(phone) != 10:
+            return jsonify({"status": "error", "message": "Valid 10-digit phone number is required."})
 
-    # Rate-limit: max 3 sends per 10 min per session
-    sends = session.get("otp_sends", 0)
-    last  = session.get("otp_last_send", 0)
-    if sends >= 3 and time.time() - last < 600:
-        return jsonify({"status":"error","message":"Too many OTP requests. Wait 10 minutes."})
-    if time.time() - last > 600:
-        session["otp_sends"] = 0
+        # Rate-limit: max 3 sends per 10 min
+        sends = session.get("otp_sends", 0)
+        last  = session.get("otp_last_send", 0.0)
+        if time.time() - last > 600:
+            sends = 0
+        if sends >= 3:
+            return jsonify({"status": "error", "message": "Too many OTP requests. Please wait 10 minutes."})
 
-    otp = str(random.randint(100000, 999999))
-    session["otp"]           = otp
-    session["otp_method"]    = method
-    session["otp_target"]    = email if method == "email" else phone
-    session["otp_time"]      = time.time()
-    session["otp_attempts"]  = 0
-    session["otp_sends"]     = session.get("otp_sends", 0) + 1
-    session["otp_last_send"] = time.time()
+        otp = str(random.randint(100000, 999999))
+        session["otp"]           = otp
+        session["otp_method"]    = method
+        session["otp_target"]    = email if method == "email" else phone
+        session["otp_time"]      = time.time()
+        session["otp_attempts"]  = 0
+        session["otp_sends"]     = sends + 1
+        session["otp_last_send"] = time.time()
+        session.modified         = True
 
-    if method == "email":
-        try:
-            _send_email_otp(email, otp)
-            masked = email[:3] + "***" + email[email.index("@"):]
-            return jsonify({"status":"sent","message":f"OTP sent to {masked}"})
-        except Exception as e:
-            logging.error(f"Email OTP failed: {e}")
-            # Clear OTP so user can retry
-            session.pop("otp", None)
-            return jsonify({"status":"error","message":"Failed to send email OTP. Check your SMTP settings in Railway Variables."})
-    else:
-        # SMS — try Fast2SMS, auto-fallback to email if SMS fails
-        sms_error = None
-        try:
-            _send_sms_otp(phone, otp)
-            return jsonify({"status":"sent","message":f"OTP sent via SMS to ***{phone[-3:]}"})
-        except Exception as e:
-            sms_error = str(e)
-            logging.warning(f"SMS OTP failed: {e}")
-
-        # SMS failed — try email fallback if email provided
-        if email:
+        if method == "email":
             try:
                 _send_email_otp(email, otp)
-                masked = email[:3] + "***" + email[email.index("@"):]
-                return jsonify({
-                    "status":  "sent",
-                    "message": f"SMS unavailable. OTP sent to your email {masked} instead.",
-                    "fallback": True
-                })
-            except Exception as e2:
-                logging.error(f"Email fallback also failed: {e2}")
+                return jsonify({"status": "sent", "message": f"OTP sent to {_mask_email(email)}"})
+            except Exception as e:
+                logging.error(f"Email OTP failed: {e}")
+                session.pop("otp", None)
+                session.modified = True
+                return jsonify({"status": "error", "message": f"Failed to send email OTP: {str(e)}"})
 
-        # Both failed
-        session.pop("otp", None)
-        return jsonify({"status":"error","message":f"Could not send OTP. SMS error: {sms_error}. Please use Email OTP instead."})
+        else:  # SMS with email fallback
+            sms_err = None
+            try:
+                _send_sms_otp(phone, otp)
+                return jsonify({"status": "sent", "message": f"OTP sent via SMS to ***{phone[-3:]}"})
+            except Exception as e:
+                sms_err = str(e)
+                logging.warning(f"SMS OTP failed: {e}")
+
+            # Auto-fallback to email
+            if email:
+                try:
+                    _send_email_otp(email, otp)
+                    return jsonify({
+                        "status":   "sent",
+                        "fallback": True,
+                        "message":  f"SMS unavailable. OTP sent to {_mask_email(email)} instead."
+                    })
+                except Exception as e2:
+                    logging.error(f"Email fallback failed: {e2}")
+                    session.pop("otp", None)
+                    session.modified = True
+                    return jsonify({"status": "error", "message": f"SMS failed: {sms_err}. Email also failed: {str(e2)}"})
+
+            session.pop("otp", None)
+            session.modified = True
+            return jsonify({"status": "error", "message": f"SMS failed: {sms_err}. Please switch to Email OTP."})
+
+    except Exception as ex:
+        logging.error(f"send_otp unhandled error: {ex}")
+        return jsonify({"status": "error", "message": f"Server error: {str(ex)}"})
 
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():

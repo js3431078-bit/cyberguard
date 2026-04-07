@@ -6,316 +6,416 @@
 <title>Register — CyberGuard Portal</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#1b3a57">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
   min-height:100vh;
-  background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%);
+  background:linear-gradient(135deg,#0a1628 0%,#1b3a57 55%,#2c5364 100%);
   display:flex;align-items:center;justify-content:center;
   font-family:'Segoe UI',system-ui,Arial,sans-serif;
-  padding:16px;
+  padding:12px;
 }
-.card{
-  background:#fff;border-radius:20px;
-  box-shadow:0 24px 80px rgba(0,0,0,.45);
-  width:100%;max-width:520px;
-  overflow:hidden;
-}
-.card-header{
-  background:linear-gradient(135deg,#1b3a57,#2563eb);
-  padding:28px 32px 24px;
-  text-align:center;color:#fff;
-}
-.card-header img{height:42px;margin-bottom:10px;}
-.card-header h1{font-size:20px;font-weight:700;margin-bottom:4px;}
-.card-header p{font-size:13px;opacity:.8;}
-.card-body{padding:28px 32px 32px;}
 
-/* inputs */
-.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-.field{margin-bottom:14px;}
-.field label{display:block;font-size:11.5px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
-.field input{
-  width:100%;padding:11px 14px;
-  border:1.5px solid #e2e8f0;border-radius:9px;
-  font-size:14px;background:#f8fafc;color:#1e293b;
+/* ── OUTER CARD ── */
+.wrap{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  width:100%;max-width:960px;
+  min-height:600px;
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:0 28px 90px rgba(0,0,0,.55);
+}
+
+/* ── LEFT PANEL ── */
+.left{
+  background:linear-gradient(160deg,#0f2027 0%,#1b3a57 45%,#16213e 100%);
+  padding:40px 36px;
+  display:flex;flex-direction:column;
+  justify-content:space-between;
+  position:relative;overflow:hidden;
+  color:#fff;
+}
+.left::before{
+  content:'';position:absolute;inset:0;
+  background:url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/svg%3E");
+  pointer-events:none;
+}
+.left-top{position:relative;z-index:1;}
+.left-logo{display:flex;align-items:center;gap:10px;margin-bottom:32px;}
+.left-logo img{height:38px;}
+.left-logo span{font-size:17px;font-weight:800;color:#ffd166;letter-spacing:.3px;}
+
+/* SVG illustration area */
+.illus{
+  position:relative;z-index:1;
+  flex:1;display:flex;align-items:center;justify-content:center;
+  padding:10px 0;
+}
+.illus svg{width:100%;max-width:280px;height:auto;}
+
+.left-bottom{position:relative;z-index:1;}
+.left-bottom h2{font-size:20px;font-weight:800;line-height:1.3;margin-bottom:8px;
+  background:linear-gradient(135deg,#fff 60%,#ffd166);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+.left-bottom p{font-size:12.5px;color:#94a3b8;line-height:1.6;margin-bottom:18px;}
+.feature-list{display:flex;flex-direction:column;gap:8px;}
+.feat{display:flex;align-items:center;gap:10px;font-size:12px;color:#cbd5e1;}
+.feat-icon{width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.1);
+  display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+
+/* ── RIGHT PANEL ── */
+.right{
+  background:#fff;
+  padding:28px 30px 24px;
+  overflow-y:auto;
+  display:flex;flex-direction:column;
+}
+.right-head{text-align:center;margin-bottom:18px;}
+.right-head h1{font-size:19px;font-weight:800;color:#1b3a57;margin-bottom:3px;}
+.right-head p{font-size:12px;color:#94a3b8;}
+
+/* form fields */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.f{margin-bottom:10px;}
+.f label{display:block;font-size:10.5px;font-weight:700;color:#475569;
+  margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px;}
+.f input{
+  width:100%;padding:9px 11px;
+  border:1.5px solid #e2e8f0;border-radius:8px;
+  font-size:13px;background:#f8fafc;color:#1e293b;
   transition:border .2s,box-shadow .2s;
 }
-.field input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);outline:none;background:#fff;}
-.field input.ok{border-color:#22c55e;background:#f0fdf4;}
-.field input.bad{border-color:#ef4444;background:#fff5f5;}
-.ferr{font-size:11px;color:#ef4444;margin-top:3px;display:none;}
+.f input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.08);outline:none;background:#fff;}
+.f input.ok{border-color:#22c55e;background:#f0fdf4;}
+.f input.bad{border-color:#ef4444;background:#fff5f5;}
+.ferr{font-size:10px;color:#ef4444;margin-top:2px;display:none;}
 .ferr.on{display:block;}
-
-/* password strength */
-.sbar-bg{height:3px;background:#e2e8f0;border-radius:3px;margin-top:6px;overflow:hidden;}
-.sbar{height:100%;width:0;border-radius:3px;transition:width .3s,background .3s;}
-.slbl{font-size:10.5px;font-weight:700;margin-top:3px;}
+.sbar-bg{height:2px;background:#e2e8f0;border-radius:2px;margin-top:4px;overflow:hidden;}
+.sbar{height:100%;width:0;border-radius:2px;transition:width .3s,background .3s;}
+.slbl{font-size:9.5px;font-weight:700;margin-top:2px;}
 
 /* checkboxes */
-.chk-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin:6px 0;cursor:pointer;}
-.chk-row input{width:15px;height:15px;accent-color:#2563eb;cursor:pointer;flex-shrink:0;}
+.chk-row{display:flex;align-items:center;gap:7px;font-size:12px;color:#64748b;margin:4px 0;cursor:pointer;}
+.chk-row input{width:14px;height:14px;accent-color:#2563eb;cursor:pointer;flex-shrink:0;}
 .chk-row a{color:#2563eb;font-weight:600;}
 
 /* divider */
-.divider{display:flex;align-items:center;gap:10px;margin:16px 0 14px;}
-.divider span{font-size:11px;font-weight:700;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px;}
+.divider{display:flex;align-items:center;gap:8px;margin:10px 0 8px;}
+.divider span{font-size:10px;font-weight:700;color:#94a3b8;white-space:nowrap;text-transform:uppercase;letter-spacing:.5px;}
 .divider::before,.divider::after{content:'';flex:1;height:1px;background:#e2e8f0;}
 
+/* step badge */
+.step-lbl{
+  display:inline-flex;align-items:center;gap:5px;
+  background:#1b3a57;color:#fff;font-size:9.5px;font-weight:700;
+  padding:3px 10px;border-radius:20px;margin-bottom:7px;letter-spacing:.3px;
+}
+
 /* CAPTCHA */
-.captcha-wrap{
-  background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;
-  padding:14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+.cap-wrap{
+  background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;
+  padding:10px;display:flex;align-items:center;gap:8px;
 }
-.captcha-wrap img{
-  height:70px;width:200px;border-radius:7px;
-  border:1.5px solid #cbd5e1;object-fit:cover;cursor:pointer;
-  display:block;background:#e2e8f0;
+.cap-wrap img{
+  height:56px;width:160px;border-radius:6px;
+  border:1.5px solid #cbd5e1;cursor:pointer;background:#e2e8f0;flex-shrink:0;
 }
-.captcha-wrap input{
-  flex:1;min-width:80px;padding:10px 12px;
-  border:1.5px solid #e2e8f0;border-radius:8px;
-  font-size:16px;font-weight:700;letter-spacing:4px;
-  text-align:center;outline:none;text-transform:uppercase;
-  background:#fff;
+.cap-wrap input{
+  flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:7px;
+  font-size:14px;font-weight:700;letter-spacing:3px;text-align:center;
+  outline:none;text-transform:uppercase;background:#fff;min-width:0;
 }
-.captcha-wrap input:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.1);}
-.btn-icon{
-  background:#f1f5f9;border:1.5px solid #e2e8f0;
-  border-radius:8px;padding:8px 10px;cursor:pointer;
-  font-size:18px;transition:background .2s,transform .3s;
-  flex-shrink:0;
+.cap-wrap input:focus{border-color:#2563eb;}
+.btn-ico{
+  background:#f1f5f9;border:1.5px solid #e2e8f0;border-radius:7px;
+  padding:6px 8px;cursor:pointer;font-size:15px;
+  transition:background .2s,transform .3s;flex-shrink:0;
 }
-.btn-icon:hover{background:#e2e8f0;transform:rotate(180deg);}
-.verified-badge{
-  display:none;align-items:center;gap:6px;
+.btn-ico:hover{background:#e2e8f0;transform:rotate(180deg);}
+
+/* verified badge */
+.vbadge{
+  display:none;align-items:center;gap:5px;
   background:#f0fdf4;border:1.5px solid #bbf7d0;
-  color:#15803d;font-size:12px;font-weight:700;
-  padding:8px 14px;border-radius:8px;margin-top:8px;
+  color:#15803d;font-size:11px;font-weight:700;
+  padding:6px 12px;border-radius:7px;margin-top:6px;
 }
-.verified-badge.show{display:flex;}
+.vbadge.show{display:flex;}
 
 /* OTP method */
-.method-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
-.method-card{
-  border:1.5px solid #e2e8f0;border-radius:9px;
-  padding:10px 14px;cursor:pointer;
-  display:flex;align-items:center;gap:8px;
-  font-size:13px;font-weight:600;color:#475569;
+.method-g{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.mcard{
+  border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 12px;cursor:pointer;
+  display:flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:#475569;
   transition:border .2s,background .2s,color .2s;
 }
-.method-card input[type="radio"]{accent-color:#2563eb;width:15px;height:15px;flex-shrink:0;}
-.method-card:has(input:checked){border-color:#2563eb;background:#eff6ff;color:#1d4ed8;}
+.mcard input[type="radio"]{accent-color:#2563eb;width:13px;height:13px;flex-shrink:0;}
+.mcard:has(input:checked){border-color:#2563eb;background:#eff6ff;color:#1d4ed8;}
 
-/* OTP input box */
+/* OTP box */
 .otp-box{
   background:#f0fdf4;border:1.5px solid #bbf7d0;
-  border-radius:10px;padding:16px;margin-top:10px;
+  border-radius:9px;padding:12px;margin-top:8px;
 }
-.otp-box .otp-label{font-size:12px;font-weight:700;color:#15803d;margin-bottom:4px;}
-.otp-box .otp-sub{font-size:12px;color:#64748b;margin-bottom:10px;}
-.otp-input-row{display:flex;gap:8px;}
-.otp-input-row input{
-  flex:1;padding:12px;border:1.5px solid #bbf7d0;border-radius:8px;
-  font-size:22px;font-weight:700;letter-spacing:8px;text-align:center;
-  outline:none;font-family:monospace;background:#fff;
+.otp-box .ol{font-size:11px;font-weight:700;color:#15803d;margin-bottom:3px;}
+.otp-box .os{font-size:11px;color:#64748b;margin-bottom:8px;}
+.otp-row{display:flex;gap:7px;}
+.otp-row input{
+  flex:1;padding:10px;border:1.5px solid #bbf7d0;border-radius:7px;
+  font-size:20px;font-weight:700;letter-spacing:6px;text-align:center;
+  outline:none;font-family:monospace;background:#fff;min-width:0;
 }
-.otp-input-row input:focus{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.15);}
+.otp-row input:focus{border-color:#22c55e;}
 .btn-resend{
-  padding:12px 14px;background:#1b3a57;color:#fff;
-  border:none;border-radius:8px;font-size:12px;font-weight:700;
-  cursor:pointer;white-space:nowrap;transition:background .2s;
+  padding:10px 12px;background:#1b3a57;color:#fff;
+  border:none;border-radius:7px;font-size:11px;font-weight:700;
+  cursor:pointer;white-space:nowrap;transition:background .2s;flex-shrink:0;
 }
-.btn-resend:hover{background:#162d45;}
 .btn-resend:disabled{background:#94a3b8;cursor:not-allowed;}
-.otp-timer{font-size:11px;color:#94a3b8;margin-top:6px;}
-
-/* step badge */
-.step-label{
-  display:inline-flex;align-items:center;gap:6px;
-  background:#1b3a57;color:#fff;
-  font-size:10.5px;font-weight:700;
-  padding:4px 12px;border-radius:20px;
-  margin-bottom:10px;letter-spacing:.4px;
-}
+.otp-timer{font-size:10px;color:#94a3b8;margin-top:4px;}
 
 /* buttons */
 .btn-primary{
-  width:100%;padding:14px;
+  width:100%;padding:12px;
   background:linear-gradient(135deg,#e63946,#c1121f);
-  color:#fff;border:none;border-radius:10px;
-  font-size:15px;font-weight:700;cursor:pointer;
-  transition:opacity .2s,transform .1s;margin-top:6px;
-  letter-spacing:.3px;
+  color:#fff;border:none;border-radius:9px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:opacity .2s,transform .1s;margin-top:8px;
 }
-.btn-primary:hover{opacity:.92;}
+.btn-primary:hover{opacity:.9;}
 .btn-primary:active{transform:scale(.98);}
 .btn-primary:disabled{background:#cbd5e1;cursor:not-allowed;}
 .btn-outline{
-  width:100%;padding:12px;
-  background:#fff;color:#1b3a57;
-  border:1.5px solid #1b3a57;border-radius:10px;
-  font-size:14px;font-weight:700;cursor:pointer;
-  transition:background .2s,color .2s;margin-top:8px;
+  width:100%;padding:9px;background:#fff;color:#1b3a57;
+  border:1.5px solid #1b3a57;border-radius:9px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  transition:background .2s,color .2s;margin-top:6px;
 }
 .btn-outline:hover{background:#1b3a57;color:#fff;}
 .btn-outline:disabled{border-color:#cbd5e1;color:#94a3b8;cursor:not-allowed;background:#fff;}
 
-.bottom-link{text-align:center;margin-top:18px;font-size:13px;color:#94a3b8;}
+.bottom-link{text-align:center;margin-top:10px;font-size:12px;color:#94a3b8;}
 .bottom-link a{color:#2563eb;font-weight:700;text-decoration:none;}
-.bottom-link a:hover{text-decoration:underline;}
 
+/* ── RESPONSIVE ── */
+@media(max-width:768px){
+  .wrap{grid-template-columns:1fr;min-height:auto;}
+  .left{padding:28px 24px 24px;min-height:auto;}
+  .illus{display:none;}
+  .left-bottom p{display:none;}
+  .feature-list{flex-direction:row;flex-wrap:wrap;gap:6px;}
+  .right{padding:22px 20px 20px;}
+}
 @media(max-width:480px){
-  .card-body{padding:20px 18px 24px;}
-  .row2,.method-grid{grid-template-columns:1fr;}
-  .captcha-wrap img{width:160px;}
+  .left{padding:20px 16px;}
+  .right{padding:18px 16px;}
+  .g2{grid-template-columns:1fr;}
+  .method-g{grid-template-columns:1fr;}
+  .cap-wrap img{width:130px;}
 }
 </style>
 </head>
 <body>
-<div class="card">
+<div class="wrap">
 
-  <div class="card-header">
-    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard">
-    <h1>Create Your Account</h1>
-    <p>Register to report and track cyber crimes</p>
+  <!-- ── LEFT PANEL ── -->
+  <div class="left">
+    <div class="left-top">
+      <div class="left-logo">
+        <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard">
+        <span>CyberGuard</span>
+      </div>
+    </div>
+
+    <!-- Inline SVG Illustration -->
+    <div class="illus">
+      <svg viewBox="0 0 320 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Shield base -->
+        <path d="M160 20 L260 60 L260 150 C260 210 160 260 160 260 C160 260 60 210 60 150 L60 60 Z"
+          fill="url(#sg)" opacity=".18"/>
+        <path d="M160 30 L250 66 L250 150 C250 205 160 252 160 252 C160 252 70 205 70 150 L70 66 Z"
+          fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linejoin="round"/>
+        <!-- Lock body -->
+        <rect x="130" y="130" width="60" height="50" rx="8" fill="#2563eb" opacity=".9"/>
+        <!-- Lock shackle -->
+        <path d="M145 130 L145 115 C145 100 175 100 175 115 L175 130"
+          stroke="#60a5fa" stroke-width="5" stroke-linecap="round" fill="none"/>
+        <!-- Keyhole -->
+        <circle cx="160" cy="152" r="7" fill="#fff" opacity=".9"/>
+        <rect x="157" y="155" width="6" height="12" rx="3" fill="#fff" opacity=".9"/>
+        <!-- Floating nodes -->
+        <circle cx="60" cy="80" r="8" fill="#e63946" opacity=".7"/>
+        <circle cx="260" cy="80" r="8" fill="#22c55e" opacity=".7"/>
+        <circle cx="40" cy="180" r="6" fill="#ffd166" opacity=".7"/>
+        <circle cx="280" cy="180" r="6" fill="#60a5fa" opacity=".7"/>
+        <circle cx="100" cy="240" r="5" fill="#a78bfa" opacity=".7"/>
+        <circle cx="220" cy="240" r="5" fill="#f97316" opacity=".7"/>
+        <!-- Connection lines -->
+        <line x1="60" y1="80" x2="160" y2="30" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+        <line x1="260" y1="80" x2="160" y2="30" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+        <line x1="40" y1="180" x2="70" y2="150" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+        <line x1="280" y1="180" x2="250" y2="150" stroke="#60a5fa" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+        <line x1="100" y1="240" x2="70" y2="200" stroke="#a78bfa" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+        <line x1="220" y1="240" x2="250" y2="200" stroke="#f97316" stroke-width="1" stroke-dasharray="4 3" opacity=".4"/>
+        <!-- Tick mark inside shield -->
+        <path d="M140 158 L155 173 L185 143" stroke="#fff" stroke-width="4"
+          stroke-linecap="round" stroke-linejoin="round" opacity=".0"/>
+        <!-- Gradient def -->
+        <defs>
+          <linearGradient id="sg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#2563eb"/>
+            <stop offset="100%" stop-color="#e63946"/>
+          </linearGradient>
+        </defs>
+        <!-- Radar rings -->
+        <circle cx="160" cy="155" r="40" stroke="#2563eb" stroke-width="1" opacity=".15" fill="none"/>
+        <circle cx="160" cy="155" r="70" stroke="#2563eb" stroke-width="1" opacity=".1" fill="none"/>
+        <circle cx="160" cy="155" r="100" stroke="#2563eb" stroke-width="1" opacity=".07" fill="none"/>
+      </svg>
+    </div>
+
+    <div class="left-bottom">
+      <h2>Protect Yourself<br>from Cyber Crime</h2>
+      <p>India's AI-powered student cybercrime reporting portal. Report incidents, track complaints, and stay safe online.</p>
+      <div class="feature-list">
+        <div class="feat"><div class="feat-icon">🤖</div><span>AI Crime Detection</span></div>
+        <div class="feat"><div class="feat-icon">🔐</div><span>Secure & Encrypted</span></div>
+        <div class="feat"><div class="feat-icon">📋</div><span>Track Complaints</span></div>
+        <div class="feat"><div class="feat-icon">📞</div><span>Helpline: 1930</span></div>
+      </div>
+    </div>
   </div>
 
-  <div class="card-body">
-  <form id="regForm" onsubmit="doRegister(event)" novalidate>
-
-    <div class="row2">
-      <div class="field">
-        <label>Full Name</label>
-        <input type="text" id="name" placeholder="Your full name" oninput="vName()">
-        <div class="ferr" id="nameErr">Enter your full name.</div>
-      </div>
-      <div class="field">
-        <label>Phone Number</label>
-        <input type="tel" id="phone" placeholder="10-digit number"
-          oninput="this.value=this.value.replace(/[^0-9]/g,'');vPhone();" maxlength="10">
-        <div class="ferr" id="phoneErr">10 digits required.</div>
-      </div>
+  <!-- ── RIGHT PANEL (FORM) ── -->
+  <div class="right">
+    <div class="right-head">
+      <h1>Create Your Account</h1>
+      <p>Register to report and track cyber crimes</p>
     </div>
 
-    <div class="field">
-      <label>Email Address</label>
-      <input type="email" id="email" placeholder="you@example.com" oninput="vEmail()">
-      <div class="ferr" id="emailErr">Enter a valid email.</div>
-    </div>
+    <form id="regForm" onsubmit="doRegister(event)" novalidate>
 
-    <div class="row2">
-      <div class="field">
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Min 8 characters" oninput="vPass()">
-        <div class="sbar-bg"><div class="sbar" id="sbar"></div></div>
-        <div class="slbl" id="slbl"></div>
-        <div class="ferr" id="passErr">Min 8 chars, A-Z, 0-9, symbol.</div>
-      </div>
-      <div class="field">
-        <label>Confirm Password</label>
-        <input type="password" id="cpass" placeholder="Repeat password" oninput="vCpass()">
-        <div class="ferr" id="cpassErr">Passwords don't match.</div>
-      </div>
-    </div>
-
-    <label class="chk-row">
-      <input type="checkbox" onchange="togglePass(this)"> Show Passwords
-    </label>
-    <label class="chk-row">
-      <input type="checkbox" id="terms"> I agree to the <a href="#" style="margin-left:4px;">Terms &amp; Conditions</a>
-    </label>
-    <div class="ferr" id="termsErr">Please accept the terms.</div>
-
-    <div class="divider"><span>Security Verification</span></div>
-
-    <!-- STEP 1: Image CAPTCHA -->
-    <div style="margin-bottom:16px;">
-      <div class="step-label">🔒 Step 1 — CAPTCHA Check</div>
-      <div class="captcha-wrap">
-        <img id="captchaImg" src="/captcha" alt="CAPTCHA — click to refresh"
-          title="Click image to refresh" onclick="refreshCaptcha()">
-        <input type="text" id="captchaAns" placeholder="Type here" maxlength="6"
-          autocomplete="off" spellcheck="false"
-          oninput="this.value=this.value.toUpperCase()"
-          onkeydown="if(event.key==='Enter'){event.preventDefault();verifyCaptcha();}">
-        <button type="button" class="btn-icon" onclick="refreshCaptcha()" title="New CAPTCHA">🔄</button>
-      </div>
-      <div class="ferr" id="captchaErr">Incorrect CAPTCHA. Try again.</div>
-      <div class="verified-badge" id="captchaOkBadge">✅ CAPTCHA verified</div>
-      <button type="button" class="btn-outline" id="verifyCaptchaBtn" onclick="verifyCaptcha()" style="margin-top:8px;">
-        Verify CAPTCHA
-      </button>
-    </div>
-
-    <!-- STEP 2: OTP -->
-    <div id="otpBlock">
-      <div class="step-label">📱 Step 2 — OTP Verification</div>
-
-      <div class="method-grid">
-        <label class="method-card">
-          <input type="radio" name="otpMethod" value="email" checked onchange="updateOtpHint()">
-          📧 Email OTP
-        </label>
-        <label class="method-card">
-          <input type="radio" name="otpMethod" value="sms" onchange="updateOtpHint()">
-          📱 SMS OTP
-        </label>
-      </div>
-
-      <div id="otpHint" style="font-size:12px;color:#64748b;margin-bottom:10px;"></div>
-
-      <button type="button" class="btn-outline" id="sendOtpBtn" onclick="sendOTP()">
-        📤 Send OTP
-      </button>
-
-      <div class="otp-box" id="otpSection" style="display:none;">
-        <div class="otp-label">🔐 Enter the 6-digit OTP</div>
-        <div class="otp-sub" id="otpSentMsg"></div>
-        <div class="otp-input-row">
-          <input type="text" id="otpInput" placeholder="——————" maxlength="6"
-            inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
-          <button type="button" class="btn-resend" id="resendBtn" onclick="sendOTP(true)" disabled>Resend</button>
+      <div class="g2">
+        <div class="f">
+          <label>Full Name</label>
+          <input type="text" id="name" placeholder="Your name" oninput="vName()">
+          <div class="ferr" id="nameErr">Enter your full name.</div>
         </div>
-        <div class="ferr" id="otpErr" style="margin-top:6px;"></div>
-        <div class="otp-timer" id="otpTimer"></div>
+        <div class="f">
+          <label>Phone</label>
+          <input type="tel" id="phone" placeholder="10-digit"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'');vPhone();" maxlength="10">
+          <div class="ferr" id="phoneErr">10 digits required.</div>
+        </div>
       </div>
 
-      <div class="verified-badge" id="otpOkBadge" style="margin-top:8px;">✅ OTP verified</div>
+      <div class="f">
+        <label>Email Address</label>
+        <input type="email" id="email" placeholder="you@example.com" oninput="vEmail()">
+        <div class="ferr" id="emailErr">Enter a valid email.</div>
+      </div>
 
-      <button type="button" class="btn-outline" id="verifyOtpBtn"
-        onclick="verifyOTP()" style="display:none;margin-top:8px;">
-        ✔ Verify OTP
-      </button>
-    </div>
+      <div class="g2">
+        <div class="f">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Min 8 chars" oninput="vPass()">
+          <div class="sbar-bg"><div class="sbar" id="sbar"></div></div>
+          <div class="slbl" id="slbl"></div>
+          <div class="ferr" id="passErr">Min 8 chars, A-Z, 0-9, symbol.</div>
+        </div>
+        <div class="f">
+          <label>Confirm Password</label>
+          <input type="password" id="cpass" placeholder="Repeat" oninput="vCpass()">
+          <div class="ferr" id="cpassErr">Passwords don't match.</div>
+        </div>
+      </div>
 
-    <button type="submit" class="btn-primary" id="regBtn" style="margin-top:18px;">
-      ✅ Create Account
-    </button>
+      <div style="display:flex;gap:16px;align-items:center;margin:2px 0 6px;">
+        <label class="chk-row">
+          <input type="checkbox" onchange="togglePass(this)"> Show Passwords
+        </label>
+        <label class="chk-row">
+          <input type="checkbox" id="terms"> I agree to <a href="#" style="margin-left:3px;">Terms</a>
+        </label>
+      </div>
+      <div class="ferr" id="termsErr">Please accept the terms.</div>
 
-  </form>
+      <div class="divider"><span>Security Verification</span></div>
+
+      <!-- STEP 1: CAPTCHA -->
+      <div style="margin-bottom:10px;">
+        <div class="step-lbl">🔒 Step 1 — CAPTCHA</div>
+        <div class="cap-wrap">
+          <img id="captchaImg" src="/captcha" alt="CAPTCHA" title="Click to refresh" onclick="refreshCaptcha()">
+          <input type="text" id="captchaAns" placeholder="Type here" maxlength="6"
+            autocomplete="off" spellcheck="false"
+            oninput="this.value=this.value.toUpperCase()"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();verifyCaptcha();}">
+          <button type="button" class="btn-ico" onclick="refreshCaptcha()" title="Refresh">🔄</button>
+        </div>
+        <div class="ferr" id="captchaErr">Incorrect CAPTCHA. Try again.</div>
+        <div class="vbadge" id="captchaOkBadge">✅ CAPTCHA verified</div>
+        <button type="button" class="btn-outline" id="verifyCaptchaBtn" onclick="verifyCaptcha()" style="margin-top:6px;">
+          Verify CAPTCHA
+        </button>
+      </div>
+
+      <!-- STEP 2: OTP -->
+      <div id="otpBlock">
+        <div class="step-lbl">📱 Step 2 — OTP Verification</div>
+        <div class="method-g">
+          <label class="mcard">
+            <input type="radio" name="otpMethod" value="email" checked onchange="updateOtpHint()">
+            📧 Email OTP
+          </label>
+          <label class="mcard">
+            <input type="radio" name="otpMethod" value="sms" onchange="updateOtpHint()">
+            📱 SMS OTP
+          </label>
+        </div>
+        <div id="otpHint" style="font-size:11px;color:#64748b;margin-bottom:6px;"></div>
+        <button type="button" class="btn-outline" id="sendOtpBtn" onclick="sendOTP()">📤 Send OTP</button>
+
+        <div class="otp-box" id="otpSection" style="display:none;">
+          <div class="ol">🔐 Enter the 6-digit OTP</div>
+          <div class="os" id="otpSentMsg"></div>
+          <div class="otp-row">
+            <input type="text" id="otpInput" placeholder="——————" maxlength="6"
+              inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+            <button type="button" class="btn-resend" id="resendBtn" onclick="sendOTP(true)" disabled>Resend</button>
+          </div>
+          <div class="ferr" id="otpErr" style="margin-top:4px;"></div>
+          <div class="otp-timer" id="otpTimer"></div>
+        </div>
+
+        <div class="vbadge" id="otpOkBadge" style="margin-top:6px;">✅ OTP verified</div>
+        <button type="button" class="btn-outline" id="verifyOtpBtn"
+          onclick="verifyOTP()" style="display:none;margin-top:6px;">✔ Verify OTP</button>
+      </div>
+
+      <button type="submit" class="btn-primary" id="regBtn">✅ Create Account</button>
+
+    </form>
+
+    <div class="bottom-link">Already have an account? <a href="/login">Login here</a></div>
   </div>
 
-  <div class="bottom-link" style="padding-bottom:20px;">
-    Already have an account? <a href="/login">Login here</a>
-  </div>
-</div>
+</div><!-- end .wrap -->
 
 <script>
 // ── Validators ────────────────────────────────────────────────────────────────
-function vName()  { return sf("name",  document.getElementById("name").value.trim().length>=2, "nameErr"); }
-function vEmail() { return sf("email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById("email").value.trim()), "emailErr"); }
-function vPhone() { return sf("phone", document.getElementById("phone").value.trim().length===10, "phoneErr"); }
-function vPass()  {
+function vName(){return sf("name",document.getElementById("name").value.trim().length>=2,"nameErr");}
+function vEmail(){return sf("email",/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById("email").value.trim()),"emailErr");}
+function vPhone(){return sf("phone",document.getElementById("phone").value.trim().length===10,"phoneErr");}
+function vPass(){
   var v=document.getElementById("password").value;
   var ok=v.length>=8&&/[A-Z]/.test(v)&&/[0-9]/.test(v)&&/[!@#$%^&*]/.test(v);
-  sf("password",ok,"passErr"); strength(v); vCpass(); return ok;
+  sf("password",ok,"passErr");strength(v);vCpass();return ok;
 }
-function vCpass() {
+function vCpass(){
   return sf("cpass",
     document.getElementById("cpass").value!==""&&
     document.getElementById("password").value===document.getElementById("cpass").value,
@@ -346,7 +446,7 @@ function refreshCaptcha(){
   document.getElementById("captchaImg").src="/captcha?t="+Date.now();
   document.getElementById("captchaAns").value="";
   document.getElementById("captchaErr").className="ferr";
-  document.getElementById("captchaOkBadge").className="verified-badge";
+  document.getElementById("captchaOkBadge").className="vbadge";
   var btn=document.getElementById("verifyCaptchaBtn");
   btn.style.display="";btn.textContent="Verify CAPTCHA";btn.disabled=false;
 }
@@ -361,7 +461,7 @@ function verifyCaptcha(){
     if(d.status==="ok"){
       captchaVerified=true;
       document.getElementById("captchaErr").className="ferr";
-      document.getElementById("captchaOkBadge").className="verified-badge show";
+      document.getElementById("captchaOkBadge").className="vbadge show";
       btn.style.display="none";
     } else {
       document.getElementById("captchaErr").className="ferr on";
@@ -377,7 +477,7 @@ function verifyCaptcha(){
 }
 
 // ── OTP ───────────────────────────────────────────────────────────────────────
-var otpVerified=false, otpTimerInt=null, resendInt=null;
+var otpVerified=false,otpTimerInt=null,resendInt=null;
 function getMethod(){return document.querySelector('input[name="otpMethod"]:checked').value;}
 function updateOtpHint(){
   var m=getMethod();
@@ -402,24 +502,20 @@ function sendOTP(resend){
     if(d.status==="sent"){
       document.getElementById("otpSection").style.display="block";
       document.getElementById("verifyOtpBtn").style.display="block";
-      var sentMsg = d.message;
-      if(d.fallback) sentMsg = "⚠️ " + sentMsg;
+      var sentMsg=d.message;
+      if(d.fallback)sentMsg="⚠️ "+sentMsg;
       document.getElementById("otpSentMsg").textContent=sentMsg;
       document.getElementById("otpErr").className="ferr";
       if(resend)document.getElementById("otpInput").value="";
       document.getElementById("otpInput").focus();
-      startOtpTimer(300);
-      startResendCooldown(60);
+      startOtpTimer(300);startResendCooldown(60);
       btn.textContent="📤 Resend OTP";btn.disabled=false;
     } else {
       alert(d.message||"Failed to send OTP.");
       btn.textContent="📤 Send OTP";btn.disabled=false;
     }
   })
-  .catch(function(){
-    alert("Server error. Please try again.");
-    btn.textContent="📤 Send OTP";btn.disabled=false;
-  });
+  .catch(function(){alert("Server error. Please try again.");btn.textContent="📤 Send OTP";btn.disabled=false;});
 }
 
 function startOtpTimer(sec){
@@ -457,8 +553,8 @@ function verifyOTP(){
       document.getElementById("otpSection").style.display="none";
       document.getElementById("sendOtpBtn").style.display="none";
       document.getElementById("verifyOtpBtn").style.display="none";
-      document.getElementById("otpOkBadge").className="verified-badge show";
-      document.querySelector(".method-grid").style.display="none";
+      document.getElementById("otpOkBadge").className="vbadge show";
+      document.querySelector(".method-g").style.display="none";
       document.getElementById("otpHint").style.display="none";
     } else {
       showOtpErr(d.message||"Incorrect OTP.");
@@ -499,7 +595,7 @@ function doRegister(e){
     } else if(d.status==="duplicate"){
       btn.innerHTML="⚠️ Already Registered";btn.style.background="#f97316";btn.disabled=false;
       var st=document.createElement("div");
-      st.style.cssText="margin-top:12px;padding:12px;background:#fff7ed;border:1px solid #fed7aa;border-radius:9px;color:#c2410c;font-size:13px;font-weight:600;text-align:center;";
+      st.style.cssText="margin-top:10px;padding:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;color:#c2410c;font-size:12px;font-weight:600;text-align:center;";
       st.textContent=d.message;document.getElementById("regForm").appendChild(st);
       setTimeout(function(){window.location.href="/login";},2500);
     } else {

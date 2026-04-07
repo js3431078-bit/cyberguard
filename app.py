@@ -146,12 +146,206 @@ def register_page():
     return render_template("register.html")
 
 
-@app.route("/register", methods=["POST"])
+# ── IMAGE CAPTCHA ─────────────────────────────────────────────────────────────
+import random, time, string, io as _io
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
+
+def _gen_captcha_text(length=6):
+    chars = string.ascii_uppercase + string.digits
+    # Remove ambiguous chars
+    chars = chars.replace("O","").replace("0","").replace("I","").replace("1","")
+    return "".join(random.choices(chars, k=length))
+
+@app.route("/captcha")
+def captcha_image():
+    text = _gen_captcha_text()
+    session["captcha_text"] = text
+    session["captcha_time"] = time.time()
+
+    W, H = 180, 60
+    img = Image.new("RGB", (W, H), color=(245, 247, 250))
+    draw = ImageDraw.Draw(img)
+
+    # Noise lines
+    for _ in range(6):
+        x1,y1 = random.randint(0,W), random.randint(0,H)
+        x2,y2 = random.randint(0,W), random.randint(0,H)
+        draw.line([(x1,y1),(x2,y2)], fill=(random.randint(150,220),)*3, width=1)
+
+    # Noise dots
+    for _ in range(80):
+        x,y = random.randint(0,W), random.randint(0,H)
+        draw.point((x,y), fill=(random.randint(100,200),)*3)
+
+    # Draw each character with slight rotation & offset
+    try:
+        font = ImageFont.truetype("arial.ttf", 32)
+    except Exception:
+        font = ImageFont.load_default()
+
+    x_offset = 10
+    for ch in text:
+        char_img = Image.new("RGBA", (30, 50), (0,0,0,0))
+        char_draw = ImageDraw.Draw(char_img)
+        color = (random.randint(20,80), random.randint(20,100), random.randint(100,180))
+        char_draw.text((2, 5), ch, font=font, fill=color)
+        angle = random.randint(-20, 20)
+        char_img = char_img.rotate(angle, expand=True)
+        img.paste(char_img, (x_offset, random.randint(2, 12)), char_img)
+        x_offset += 26
+
+    img = img.filter(ImageFilter.SMOOTH)
+
+    buf = _io.BytesIO()
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    from flask import send_file
+    return send_file(buf, mimetype="image/png", max_age=0)
+
+@app.route("/verify-captcha", methods=["POST"])
+def verify_captcha():
+    data = request.json
+    user_ans = data.get("answer","").strip().upper()
+    stored   = session.get("captcha_text","")
+    ts       = session.get("captcha_time", 0)
+    if not stored:
+        return jsonify({"status":"error","message":"CAPTCHA expired. Refresh."})
+    if time.time() - ts > 300:
+        session.pop("captcha_text", None)
+        return jsonify({"status":"error","message":"CAPTCHA expired. Refresh."})
+    if user_ans != stored:
+        # Regenerate on wrong attempt (handled client-side via /captcha reload)
+        session.pop("captcha_text", None)
+        return jsonify({"status":"error","message":"Incorrect CAPTCHA."})
+    session["captcha_verified"] = True
+    return jsonify({"status":"ok"})
+
+
+# ── OTP SEND & VERIFY ─────────────────────────────────────────────────────────
+import smtplib, requests as _requests
+from email.mime.text import MIMEText
+
+def _send_email_otp(to_email, otp):
+    smtp_user = os.environ.get("SMTP_USER","")
+    smtp_pass = os.environ.get("SMTP_PASS","")
+    if not smtp_user or not smtp_pass:
+        raise ValueError("SMTP not configured")
+    msg = MIMEText(
+        f"Your CyberGuard registration OTP is: {otp}\n\n"
+        f"Valid for 5 minutes. Do not share this with anyone.\n\n"
+        f"— CyberGuard Security Team"
+    )
+    msg["Subject"] = "CyberGuard — Email Verification OTP"
+    msg["From"]    = smtp_user
+    msg["To"]      = to_email
+    with smtplib.SMTP("smtp.gmail.com", 587) as s:
+        s.starttls()
+        s.login(smtp_user, smtp_pass)
+        s.send_message(msg)
+
+def _send_sms_otp(phone, otp):
+    api_key = os.environ.get("FAST2SMS_KEY","")
+    if not api_key:
+        raise ValueError("Fast2SMS key not configured")
+    resp = _requests.post(
+        "https://www.fast2sms.com/dev/bulkV2",
+        headers={"authorization": api_key},
+        json={
+            "route": "otp",
+            "variables_values": otp,
+            "numbers": phone,
+            "flash": 0
+        },
+        timeout=10
+    )
+    data = resp.json()
+    if not data.get("return"):
+        raise ValueError(data.get("message","SMS send failed"))
+
+@app.route("/send-otp", methods=["POST"])
+def send_otp():
+    data    = request.json
+    method  = data.get("method","email")   # "email" or "sms"
+    email   = data.get("email","").strip()
+    phone   = data.get("phone","").strip()
+
+    if method == "email" and not email:
+        return jsonify({"status":"error","message":"Email is required."})
+    if method == "sms" and (not phone or len(phone) != 10):
+        return jsonify({"status":"error","message":"Valid 10-digit phone is required."})
+
+    # Rate-limit: max 3 sends per 10 min per session
+    sends = session.get("otp_sends", 0)
+    last  = session.get("otp_last_send", 0)
+    if sends >= 3 and time.time() - last < 600:
+        return jsonify({"status":"error","message":"Too many OTP requests. Wait 10 minutes."})
+    if time.time() - last > 600:
+        session["otp_sends"] = 0
+
+    otp = str(random.randint(100000, 999999))
+    session["otp"]           = otp
+    session["otp_method"]    = method
+    session["otp_target"]    = email if method == "email" else phone
+    session["otp_time"]      = time.time()
+    session["otp_attempts"]  = 0
+    session["otp_sends"]     = session.get("otp_sends", 0) + 1
+    session["otp_last_send"] = time.time()
+
+    try:
+        if method == "email":
+            _send_email_otp(email, otp)
+            return jsonify({"status":"sent","message":f"OTP sent to {email[:3]}***{email[email.index('@'):]}"})
+        else:
+            _send_sms_otp(phone, otp)
+            return jsonify({"status":"sent","message":f"OTP sent to ***{phone[-3:]}"})
+    except ValueError as ve:
+        logging.warning(f"OTP send config error: {ve}")
+        return jsonify({"status":"error","message":str(ve)})
+    except Exception as e:
+        logging.error(f"OTP send failed: {e}")
+        return jsonify({"status":"error","message":"Failed to send OTP. Check your credentials."})
+
+@app.route("/verify-otp", methods=["POST"])
+def verify_otp():
+    data   = request.json
+    otp_in = data.get("otp","").strip()
+
+    stored_otp  = session.get("otp","")
+    stored_time = session.get("otp_time", 0)
+    attempts    = session.get("otp_attempts", 0)
+
+    if not stored_otp:
+        return jsonify({"status":"error","message":"No OTP found. Please request a new one."})
+    if attempts >= 5:
+        session.pop("otp", None)
+        return jsonify({"status":"error","message":"Too many wrong attempts. Request a new OTP."})
+    if time.time() - stored_time > 300:
+        session.pop("otp", None)
+        return jsonify({"status":"error","message":"OTP expired. Please request a new one."})
+    if otp_in != stored_otp:
+        session["otp_attempts"] = attempts + 1
+        left = 5 - session["otp_attempts"]
+        return jsonify({"status":"error","message":f"Incorrect OTP. {left} attempt(s) left."})
+
+    # Clear OTP, mark verified
+    session.pop("otp", None)
+    session.pop("otp_time", None)
+    session.pop("otp_attempts", None)
+    session["otp_verified"] = True
+    return jsonify({"status":"verified","message":"OTP verified successfully."})
+
+
 def register_user():
     d = request.json
     name, email, phone, password = d.get("name","").strip(), d.get("email","").strip(), d.get("phone","").strip(), d.get("password","")
     if not all([name, email, phone, password]):
         return jsonify({"status":"error","message":"All fields are required."})
+    if not session.get("captcha_verified"):
+        return jsonify({"status":"error","message":"CAPTCHA not verified."})
+    if not session.get("otp_verified"):
+        return jsonify({"status":"error","message":"OTP not verified."})
+    session.pop("captcha_verified", None)
+    session.pop("otp_verified", None)
     conn = get_db()
     try:
         conn.execute("INSERT INTO users(name,email,phone,password) VALUES(?,?,?,?)",(name,email,phone,password))

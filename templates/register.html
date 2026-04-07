@@ -30,17 +30,11 @@ body.dark{
   padding:38px 36px;
 }
 .reg-head{text-align:center;margin-bottom:22px;}
-.reg-head .badge{
-  display:inline-flex;align-items:center;gap:6px;
-  background:#fff5f5;border:1px solid #fecaca;
-  color:#e63946;font-size:11px;font-weight:700;
-  padding:4px 12px;border-radius:20px;margin-bottom:10px;
-  text-transform:uppercase;letter-spacing:.5px;
-}
 .reg-head h1{font-size:22px;color:#1b3a57;font-weight:700;margin-bottom:4px;}
 .reg-head p{font-size:13px;color:#94a3b8;}
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .f{margin-bottom:12px;}
+.f label{font-size:12px;font-weight:600;color:#475569;display:block;margin-bottom:4px;}
 .f input{
   width:100%;padding:11px 14px;
   border:1.5px solid #e2e8f0;border-radius:8px;
@@ -60,6 +54,67 @@ body.dark{
 .terms-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#64748b;margin:8px 0 4px;}
 .terms-row input{width:15px;height:15px;margin-top:2px;accent-color:#1b3a57;flex-shrink:0;cursor:pointer;}
 .terms-row a{color:#1b3a57;font-weight:600;}
+
+/* CAPTCHA */
+.captcha-box{
+  background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;
+  padding:12px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.captcha-box img{border-radius:6px;border:1px solid #cbd5e1;height:60px;cursor:pointer;}
+.captcha-box input{
+  flex:1;min-width:90px;padding:9px 12px;
+  border:1.5px solid #e2e8f0;border-radius:7px;
+  font-size:15px;font-weight:700;letter-spacing:3px;
+  text-align:center;outline:none;text-transform:uppercase;
+}
+.captcha-box .refresh-btn{
+  background:none;border:none;cursor:pointer;font-size:20px;padding:4px;
+  transition:transform .3s;
+}
+.captcha-box .refresh-btn:hover{transform:rotate(180deg);}
+.captcha-verified-badge{
+  display:none;align-items:center;gap:6px;
+  background:#f0fdf4;border:1px solid #bbf7d0;
+  color:#15803d;font-size:12px;font-weight:700;
+  padding:6px 12px;border-radius:7px;margin-top:6px;
+}
+.captcha-verified-badge.show{display:flex;}
+
+/* OTP method selector */
+.otp-method{display:flex;gap:10px;margin-bottom:10px;}
+.otp-method label{
+  flex:1;display:flex;align-items:center;gap:8px;
+  padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:8px;
+  cursor:pointer;font-size:13px;font-weight:600;color:#475569;
+  transition:border .2s,background .2s;
+}
+.otp-method input[type="radio"]{accent-color:#1b3a57;}
+.otp-method label:has(input:checked){
+  border-color:#1b3a57;background:#eff6ff;color:#1b3a57;
+}
+
+/* OTP section */
+.otp-section{
+  background:#f0fdf4;border:1.5px solid #bbf7d0;
+  border-radius:9px;padding:14px;margin-top:4px;
+}
+.otp-section .otp-title{font-size:13px;font-weight:700;color:#15803d;margin-bottom:6px;}
+.otp-section .otp-hint{font-size:12px;color:#64748b;margin-bottom:10px;}
+.otp-input-row{display:flex;gap:8px;align-items:center;}
+.otp-input-row input{
+  flex:1;padding:10px 14px;border:1.5px solid #bbf7d0;border-radius:8px;
+  font-size:18px;font-weight:700;letter-spacing:6px;text-align:center;
+  outline:none;font-family:monospace;
+}
+.otp-input-row button{
+  padding:10px 14px;background:#1b3a57;color:#fff;
+  border:none;border-radius:8px;font-size:12px;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+}
+.otp-input-row button:disabled{background:#94a3b8;cursor:not-allowed;}
+.otp-timer{font-size:11px;color:#94a3b8;margin-top:6px;}
+
+/* Buttons */
 .btn-reg{
   width:100%;padding:13px;
   background:#e63946;color:#fff;
@@ -71,6 +126,21 @@ body.dark{
 .btn-reg:hover{background:#c1121f;}
 .btn-reg:active{transform:scale(.98);}
 .btn-reg:disabled{background:#ccc;cursor:not-allowed;}
+.btn-secondary{
+  width:100%;padding:12px;
+  background:#1b3a57;color:#fff;
+  border:none;border-radius:8px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  transition:background .2s;margin-top:8px;
+}
+.btn-secondary:hover{background:#162d45;}
+.btn-secondary:disabled{background:#94a3b8;cursor:not-allowed;}
+
+.step-badge{
+  display:inline-block;background:#1b3a57;color:#fff;
+  font-size:10px;font-weight:700;padding:2px 8px;
+  border-radius:20px;margin-bottom:6px;letter-spacing:.5px;
+}
 .bottom-link{text-align:center;margin-top:16px;font-size:13px;color:#94a3b8;}
 .bottom-link a{color:#1b3a57;font-weight:600;text-decoration:none;}
 .bottom-link a:hover{text-decoration:underline;}
@@ -91,31 +161,37 @@ body.dark{
 
   <form id="regForm" onsubmit="doRegister(event)" novalidate>
 
+    <!-- Personal Info -->
     <div class="row2">
       <div class="f">
+        <label>Full Name</label>
         <input type="text" id="name" placeholder="Full Name" oninput="vName()">
         <div class="ferr" id="nameErr">Enter your full name.</div>
       </div>
       <div class="f">
-        <input type="tel" id="phone" placeholder="Phone (10 digits)"
+        <label>Phone Number</label>
+        <input type="tel" id="phone" placeholder="10-digit phone"
           oninput="this.value=this.value.replace(/[^0-9]/g,'');vPhone();" maxlength="10">
         <div class="ferr" id="phoneErr">10 digits required.</div>
       </div>
     </div>
 
     <div class="f">
+      <label>Email Address</label>
       <input type="email" id="email" placeholder="Email Address" oninput="vEmail()">
       <div class="ferr" id="emailErr">Enter a valid email.</div>
     </div>
 
     <div class="row2">
       <div class="f">
+        <label>Password</label>
         <input type="password" id="password" placeholder="Password" oninput="vPass()">
         <div class="sbar-bg"><div class="sbar" id="sbar"></div></div>
         <div class="slbl" id="slbl"></div>
         <div class="ferr" id="passErr">Min 8 chars, A-Z, 0-9, symbol.</div>
       </div>
       <div class="f">
+        <label>Confirm Password</label>
         <input type="password" id="cpass" placeholder="Confirm Password" oninput="vCpass()">
         <div class="ferr" id="cpassErr">Passwords don't match.</div>
       </div>
@@ -131,20 +207,68 @@ body.dark{
     </div>
     <div class="ferr" id="termsErr">Please accept the terms.</div>
 
-    <!-- CAPTCHA -->
-    <div class="f" style="margin-top:4px;">
-      <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:12px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <span style="font-size:13px;color:#475569;font-weight:600;">Security Check:</span>
-        <span id="captchaQ" style="font-size:16px;font-weight:800;color:#1b3a57;font-family:monospace;background:#e2e8f0;padding:4px 12px;border-radius:6px;letter-spacing:2px;"></span>
-        <span style="font-size:13px;color:#64748b;">=</span>
-        <input type="text" id="captchaAns" placeholder="Answer" maxlength="4"
-          style="width:80px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:14px;font-weight:700;text-align:center;outline:none;">
-        <button type="button" onclick="genCaptcha()" style="background:none;border:none;cursor:pointer;font-size:18px;" title="Refresh">🔄</button>
+    <!-- STEP 1: Image CAPTCHA -->
+    <div style="margin-top:14px;">
+      <div class="step-badge">STEP 1 — Security Check</div>
+      <div class="captcha-box">
+        <img id="captchaImg" src="/captcha" alt="CAPTCHA" title="Click to refresh"
+          onclick="refreshCaptcha()" style="user-select:none;">
+        <input type="text" id="captchaAns" placeholder="Enter text" maxlength="6"
+          autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase()">
+        <button type="button" class="refresh-btn" onclick="refreshCaptcha()" title="New CAPTCHA">🔄</button>
       </div>
-      <div class="ferr" id="captchaErr">Incorrect answer. Please try again.</div>
+      <div class="ferr" id="captchaErr">Incorrect CAPTCHA. Try again.</div>
+      <div class="captcha-verified-badge" id="captchaOkBadge">✅ CAPTCHA verified</div>
+      <button type="button" class="btn-secondary" id="verifyCaptchaBtn" onclick="verifyCaptcha()">
+        Verify CAPTCHA
+      </button>
     </div>
 
-    <button type="submit" class="btn-reg" id="regBtn">✅ Create Account</button>
+    <!-- STEP 2: OTP -->
+    <div style="margin-top:16px;" id="otpBlock">
+      <div class="step-badge">STEP 2 — OTP Verification</div>
+
+      <div class="otp-method">
+        <label>
+          <input type="radio" name="otpMethod" value="email" checked onchange="updateOtpHint()">
+          📧 Email OTP
+        </label>
+        <label>
+          <input type="radio" name="otpMethod" value="sms" onchange="updateOtpHint()">
+          📱 SMS OTP
+        </label>
+      </div>
+
+      <div id="otpHint" style="font-size:12px;color:#64748b;margin-bottom:8px;"></div>
+
+      <button type="button" class="btn-secondary" id="sendOtpBtn" onclick="sendOTP()">
+        📤 Send OTP
+      </button>
+
+      <div class="otp-section" id="otpSection" style="display:none;margin-top:10px;">
+        <div class="otp-title">🔐 Enter OTP</div>
+        <div class="otp-hint" id="otpSentMsg"></div>
+        <div class="otp-input-row">
+          <input type="text" id="otpInput" placeholder="• • • • • •" maxlength="6"
+            oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          <button type="button" id="resendBtn" onclick="sendOTP(true)" disabled>Resend</button>
+        </div>
+        <div class="ferr" id="otpErr" style="margin-top:6px;display:block;visibility:hidden;"></div>
+        <div class="otp-timer" id="otpTimer"></div>
+      </div>
+
+      <div class="captcha-verified-badge" id="otpOkBadge" style="margin-top:8px;">✅ OTP verified</div>
+
+      <button type="button" class="btn-secondary" id="verifyOtpBtn"
+        onclick="verifyOTP()" style="display:none;margin-top:8px;">
+        ✔ Verify OTP
+      </button>
+    </div>
+
+    <!-- STEP 3: Submit -->
+    <button type="submit" class="btn-reg" id="regBtn" style="margin-top:16px;">
+      ✅ Create Account
+    </button>
 
   </form>
 
@@ -152,6 +276,7 @@ body.dark{
 </div>
 
 <script>
+// ── Field validators ──────────────────────────────────────────────────────────
 function vName()  { return sf("name",  document.getElementById("name").value.trim().length >= 2, "nameErr"); }
 function vEmail() { return sf("email", /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(document.getElementById("email").value.trim()), "emailErr"); }
 function vPhone() { return sf("phone", document.getElementById("phone").value.trim().length === 10, "phoneErr"); }
@@ -180,31 +305,198 @@ function strength(v) {
   document.getElementById("slbl").textContent = l ? l.t : "";
   document.getElementById("slbl").style.color = l ? l.c : "";
 }
-// ── CAPTCHA ──
-var captchaAnswer = 0;
-function genCaptcha() {
-  var a = Math.floor(Math.random()*9)+1;
-  var b = Math.floor(Math.random()*9)+1;
-  var ops = [
-    {q: a + " + " + b, ans: a+b},
-    {q: (a+b) + " - " + a, ans: b},
-    {q: a + " × " + b, ans: a*b}
-  ];
-  var pick = ops[Math.floor(Math.random()*ops.length)];
-  document.getElementById("captchaQ").textContent = pick.q;
-  captchaAnswer = pick.ans;
+function togglePass(cb) {
+  ["password","cpass"].forEach(function(id){
+    document.getElementById(id).type = cb.checked ? "text" : "password";
+  });
+}
+
+// ── CAPTCHA ───────────────────────────────────────────────────────────────────
+var captchaVerified = false;
+
+function refreshCaptcha() {
+  captchaVerified = false;
+  document.getElementById("captchaImg").src = "/captcha?t=" + Date.now();
   document.getElementById("captchaAns").value = "";
   document.getElementById("captchaErr").className = "ferr";
-}
-genCaptcha();
-
-function vCaptcha() {
-  var ans = parseInt(document.getElementById("captchaAns").value.trim());
-  var ok = ans === captchaAnswer;
-  document.getElementById("captchaErr").className = ok ? "ferr" : "ferr on";
-  return ok;
+  document.getElementById("captchaOkBadge").className = "captcha-verified-badge";
+  document.getElementById("verifyCaptchaBtn").style.display = "";
 }
 
+function verifyCaptcha() {
+  var ans = document.getElementById("captchaAns").value.trim();
+  if (!ans) { document.getElementById("captchaErr").className = "ferr on"; return; }
+  var btn = document.getElementById("verifyCaptchaBtn");
+  btn.textContent = "Verifying..."; btn.disabled = true;
+
+  fetch("/verify-captcha", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({answer: ans})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.status === "ok") {
+      captchaVerified = true;
+      document.getElementById("captchaErr").className = "ferr";
+      document.getElementById("captchaOkBadge").className = "captcha-verified-badge show";
+      btn.style.display = "none";
+    } else {
+      document.getElementById("captchaErr").className = "ferr on";
+      document.getElementById("captchaErr").textContent = d.message || "Incorrect CAPTCHA.";
+      refreshCaptcha();
+      btn.textContent = "Verify CAPTCHA"; btn.disabled = false;
+    }
+  })
+  .catch(function(){
+    document.getElementById("captchaErr").className = "ferr on";
+    document.getElementById("captchaErr").textContent = "Server error. Try again.";
+    btn.textContent = "Verify CAPTCHA"; btn.disabled = false;
+  });
+}
+
+// ── OTP ───────────────────────────────────────────────────────────────────────
+var otpVerified = false;
+var otpTimer = null;
+var resendCountdown = null;
+
+function getOtpMethod() {
+  return document.querySelector('input[name="otpMethod"]:checked').value;
+}
+
+function updateOtpHint() {
+  var m = getOtpMethod();
+  var hint = document.getElementById("otpHint");
+  if (m === "email") {
+    hint.textContent = "OTP will be sent to your email address.";
+  } else {
+    hint.textContent = "OTP will be sent via SMS to your phone number.";
+  }
+}
+updateOtpHint();
+
+function sendOTP(resend) {
+  if (!captchaVerified) {
+    alert("Please complete CAPTCHA verification first.");
+    return;
+  }
+  var method = getOtpMethod();
+  var email  = document.getElementById("email").value.trim();
+  var phone  = document.getElementById("phone").value.trim();
+
+  if (method === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert("Please enter a valid email address first."); return;
+  }
+  if (method === "sms" && phone.length !== 10) {
+    alert("Please enter a valid 10-digit phone number first."); return;
+  }
+
+  var btn = document.getElementById("sendOtpBtn");
+  btn.textContent = "Sending..."; btn.disabled = true;
+
+  fetch("/send-otp", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({method: method, email: email, phone: phone})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.status === "sent") {
+      document.getElementById("otpSection").style.display = "block";
+      document.getElementById("verifyOtpBtn").style.display = "block";
+      document.getElementById("otpSentMsg").textContent = d.message;
+      document.getElementById("otpErr").style.visibility = "hidden";
+      document.getElementById("otpInput").value = "";
+      if (resend) document.getElementById("otpInput").focus();
+      startOtpTimer(300);
+      startResendCooldown(60);
+      btn.textContent = "📤 Resend OTP";
+      btn.disabled = false;
+    } else {
+      alert(d.message || "Failed to send OTP.");
+      btn.textContent = "📤 Send OTP"; btn.disabled = false;
+    }
+  })
+  .catch(function(){
+    alert("Server error. Try again.");
+    btn.textContent = "📤 Send OTP"; btn.disabled = false;
+  });
+}
+
+function startOtpTimer(seconds) {
+  clearInterval(otpTimer);
+  var el = document.getElementById("otpTimer");
+  var rem = seconds;
+  function tick() {
+    var m = Math.floor(rem/60), s = rem%60;
+    el.textContent = "OTP expires in " + m + ":" + (s<10?"0":"") + s;
+    el.style.color = rem <= 30 ? "#e63946" : "#94a3b8";
+    if (rem <= 0) { clearInterval(otpTimer); el.textContent = "OTP expired. Please resend."; el.style.color="#e63946"; }
+    rem--;
+  }
+  tick();
+  otpTimer = setInterval(tick, 1000);
+}
+
+function startResendCooldown(seconds) {
+  clearInterval(resendCountdown);
+  var btn = document.getElementById("resendBtn");
+  var rem = seconds;
+  btn.disabled = true;
+  resendCountdown = setInterval(function(){
+    rem--;
+    btn.textContent = "Resend (" + rem + "s)";
+    if (rem <= 0) {
+      clearInterval(resendCountdown);
+      btn.textContent = "Resend";
+      btn.disabled = false;
+    }
+  }, 1000);
+}
+
+function verifyOTP() {
+  var otp = document.getElementById("otpInput").value.trim();
+  if (!otp || otp.length !== 6) {
+    showOtpErr("Enter the 6-digit OTP."); return;
+  }
+  var btn = document.getElementById("verifyOtpBtn");
+  btn.textContent = "Verifying..."; btn.disabled = true;
+
+  fetch("/verify-otp", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({otp: otp})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if (d.status === "verified") {
+      otpVerified = true;
+      clearInterval(otpTimer);
+      document.getElementById("otpSection").style.display = "none";
+      document.getElementById("sendOtpBtn").style.display = "none";
+      document.getElementById("verifyOtpBtn").style.display = "none";
+      document.getElementById("otpOkBadge").className = "captcha-verified-badge show";
+      document.querySelector('.otp-method').style.display = "none";
+      document.getElementById("otpHint").style.display = "none";
+    } else {
+      showOtpErr(d.message || "Incorrect OTP.");
+      btn.textContent = "✔ Verify OTP"; btn.disabled = false;
+    }
+  })
+  .catch(function(){
+    showOtpErr("Server error. Try again.");
+    btn.textContent = "✔ Verify OTP"; btn.disabled = false;
+  });
+}
+
+function showOtpErr(msg) {
+  var el = document.getElementById("otpErr");
+  el.textContent = msg;
+  el.style.visibility = "visible";
+  el.className = "ferr on";
+}
+
+// ── Register ──────────────────────────────────────────────────────────────────
 function doRegister(e) {
   e.preventDefault();
   var n=vName(), em=vEmail(), ph=vPhone(), pw=vPass(), cp=vCpass();
@@ -212,19 +504,24 @@ function doRegister(e) {
   if (!terms) { document.getElementById("termsErr").className="ferr on"; return; }
   document.getElementById("termsErr").className="ferr";
   if (!n||!em||!ph||!pw||!cp) return;
-  if (!vCaptcha()) { document.getElementById("captchaErr").className="ferr on"; return; }
+
+  if (!captchaVerified) {
+    alert("Please complete CAPTCHA verification (Step 1)."); return;
+  }
+  if (!otpVerified) {
+    alert("Please verify your OTP (Step 2)."); return;
+  }
 
   var btn = document.getElementById("regBtn");
-  btn.textContent = "Creating account...";
-  btn.disabled = true;
+  btn.textContent = "Creating account..."; btn.disabled = true;
 
   fetch("/register", {
     method:"POST",
     headers:{"Content-Type":"application/json"},
     body: JSON.stringify({
-      name: document.getElementById("name").value.trim(),
-      email: document.getElementById("email").value.trim(),
-      phone: document.getElementById("phone").value.trim(),
+      name:     document.getElementById("name").value.trim(),
+      email:    document.getElementById("email").value.trim(),
+      phone:    document.getElementById("phone").value.trim(),
       password: document.getElementById("password").value
     })
   })
@@ -245,19 +542,12 @@ function doRegister(e) {
       setTimeout(function(){ window.location.href="/login"; }, 2500);
     } else {
       alert(d.message);
-      btn.textContent = "✅ Create Account";
-      btn.disabled = false;
+      btn.textContent = "✅ Create Account"; btn.disabled = false;
     }
   })
   .catch(function(){
     alert("Server error. Try again.");
-    btn.textContent = "✅ Create Account";
-    btn.disabled = false;
-  });
-}
-function togglePass(cb) {
-  ["password","cpass"].forEach(function(id){
-    document.getElementById(id).type = cb.checked ? "text" : "password";
+    btn.textContent = "✅ Create Account"; btn.disabled = false;
   });
 }
 </script>

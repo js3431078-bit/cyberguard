@@ -162,45 +162,53 @@ def captcha_image():
     session["captcha_text"] = text
     session["captcha_time"] = time.time()
 
-    W, H = 180, 60
-    img = Image.new("RGB", (W, H), color=(245, 247, 250))
+    W, H = 200, 70
+    img = Image.new("RGB", (W, H), color=(240, 244, 255))
     draw = ImageDraw.Draw(img)
 
-    # Noise lines
-    for _ in range(6):
+    # Background noise lines
+    for _ in range(5):
         x1,y1 = random.randint(0,W), random.randint(0,H)
         x2,y2 = random.randint(0,W), random.randint(0,H)
-        draw.line([(x1,y1),(x2,y2)], fill=(random.randint(150,220),)*3, width=1)
+        draw.line([(x1,y1),(x2,y2)], fill=(random.randint(160,210), random.randint(160,210), random.randint(200,230)), width=1)
 
     # Noise dots
-    for _ in range(80):
+    for _ in range(60):
         x,y = random.randint(0,W), random.randint(0,H)
-        draw.point((x,y), fill=(random.randint(100,200),)*3)
+        draw.ellipse([x,y,x+2,y+2], fill=(random.randint(150,200),)*3)
 
-    # Draw each character with slight rotation & offset
-    try:
-        font = ImageFont.truetype("arial.ttf", 32)
-    except Exception:
+    # Try to load a decent font, fall back gracefully
+    font = None
+    for fname in ["arial.ttf","Arial.ttf","DejaVuSans-Bold.ttf","LiberationSans-Bold.ttf","/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
+        try:
+            font = ImageFont.truetype(fname, 36)
+            break
+        except Exception:
+            continue
+    if font is None:
         font = ImageFont.load_default()
 
-    x_offset = 10
+    # Draw each character with slight rotation & color variation
+    x_offset = 8
     for ch in text:
-        char_img = Image.new("RGBA", (30, 50), (0,0,0,0))
+        color = (random.randint(10,60), random.randint(10,80), random.randint(120,200))
+        char_img = Image.new("RGBA", (36, 56), (0,0,0,0))
         char_draw = ImageDraw.Draw(char_img)
-        color = (random.randint(20,80), random.randint(20,100), random.randint(100,180))
-        char_draw.text((2, 5), ch, font=font, fill=color)
-        angle = random.randint(-20, 20)
-        char_img = char_img.rotate(angle, expand=True)
-        img.paste(char_img, (x_offset, random.randint(2, 12)), char_img)
-        x_offset += 26
+        char_draw.text((2, 4), ch, font=font, fill=color)
+        angle = random.randint(-18, 18)
+        char_img = char_img.rotate(angle, expand=True, resample=Image.BICUBIC)
+        img.paste(char_img, (x_offset, random.randint(4, 14)), char_img)
+        x_offset += 30
 
     img = img.filter(ImageFilter.SMOOTH)
-
     buf = _io.BytesIO()
     img.save(buf, format="PNG")
     buf.seek(0)
     from flask import send_file
-    return send_file(buf, mimetype="image/png", max_age=0)
+    response = send_file(buf, mimetype="image/png")
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    return response
 
 @app.route("/verify-captcha", methods=["POST"])
 def verify_captcha():
@@ -247,20 +255,22 @@ def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY","")
     if not api_key:
         raise ValueError("Fast2SMS key not configured")
-    resp = _requests.post(
+    resp = _requests.get(
         "https://www.fast2sms.com/dev/bulkV2",
         headers={"authorization": api_key},
-        json={
-            "route": "otp",
-            "variables_values": otp,
-            "numbers": phone,
-            "flash": 0
+        params={
+            "route":            "v3",
+            "sender_id":        "FTSMS",
+            "message":          f"Your CyberGuard OTP is {otp}. Valid for 5 minutes.",
+            "language":         "english",
+            "flash":            0,
+            "numbers":          phone,
         },
         timeout=10
     )
     data = resp.json()
     if not data.get("return"):
-        raise ValueError(data.get("message","SMS send failed"))
+        raise ValueError(str(data.get("message", "SMS send failed")))
 
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
@@ -335,6 +345,7 @@ def verify_otp():
     return jsonify({"status":"verified","message":"OTP verified successfully."})
 
 
+@app.route("/register", methods=["POST"])
 def register_user():
     d = request.json
     name, email, phone, password = d.get("name","").strip(), d.get("email","").strip(), d.get("phone","").strip(), d.get("password","")

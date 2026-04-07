@@ -3,88 +3,201 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Login - Student Cybercrime Portal</title>
+<title>Login — CyberGuard Portal</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#1b3a57">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CyberGuard">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/static/icons/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  min-height:100vh;
+  background:linear-gradient(135deg,#0f2027 0%,#203a43 50%,#2c5364 100%);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Segoe UI',system-ui,Arial,sans-serif;
+  padding:16px;
+}
+.card{
+  background:#fff;border-radius:20px;
+  box-shadow:0 24px 80px rgba(0,0,0,.45);
+  width:100%;max-width:420px;
+  overflow:hidden;
+}
+.card-header{
+  background:linear-gradient(135deg,#1b3a57,#2563eb);
+  padding:32px 32px 28px;
+  text-align:center;color:#fff;
+}
+.card-header img{height:46px;margin-bottom:12px;}
+.card-header h1{font-size:22px;font-weight:700;margin-bottom:5px;}
+.card-header p{font-size:13px;opacity:.8;}
+.card-body{padding:30px 32px 32px;}
+
+.field{margin-bottom:16px;}
+.field label{display:block;font-size:11.5px;font-weight:700;color:#475569;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+.input-wrap{position:relative;}
+.input-wrap .icon{
+  position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  font-size:16px;pointer-events:none;
+}
+.field input{
+  width:100%;padding:12px 14px 12px 40px;
+  border:1.5px solid #e2e8f0;border-radius:10px;
+  font-size:14px;background:#f8fafc;color:#1e293b;
+  transition:border .2s,box-shadow .2s;
+}
+.field input:focus{
+  border-color:#2563eb;
+  box-shadow:0 0 0 3px rgba(37,99,235,.1);
+  outline:none;background:#fff;
+}
+
+.show-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#64748b;margin:-4px 0 16px;cursor:pointer;}
+.show-row input{width:15px;height:15px;accent-color:#2563eb;cursor:pointer;}
+
+.status-msg{
+  min-height:20px;font-size:13px;font-weight:600;
+  text-align:center;margin-bottom:12px;border-radius:8px;
+  padding:0;transition:padding .2s;
+}
+.status-msg.show{padding:10px 14px;}
+
+.btn-login{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,#1b3a57,#2563eb);
+  color:#fff;border:none;border-radius:10px;
+  font-size:15px;font-weight:700;cursor:pointer;
+  transition:opacity .2s,transform .1s;
+  letter-spacing:.3px;
+}
+.btn-login:hover{opacity:.9;}
+.btn-login:active{transform:scale(.98);}
+.btn-login:disabled{background:#cbd5e1;cursor:not-allowed;}
+
+.divider{display:flex;align-items:center;gap:10px;margin:20px 0;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#e2e8f0;}
+.divider span{font-size:11px;color:#94a3b8;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+
+.links{display:flex;justify-content:space-between;font-size:13px;}
+.links a{color:#2563eb;font-weight:600;text-decoration:none;}
+.links a:hover{text-decoration:underline;}
+
+.register-cta{
+  text-align:center;margin-top:20px;
+  padding:16px;background:#f8fafc;
+  border-top:1px solid #e2e8f0;
+  font-size:13px;color:#64748b;
+}
+.register-cta a{color:#2563eb;font-weight:700;text-decoration:none;}
+.register-cta a:hover{text-decoration:underline;}
+
+.badge-row{display:flex;justify-content:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  background:#f1f5f9;border:1px solid #e2e8f0;
+  color:#475569;font-size:10.5px;font-weight:600;
+  padding:4px 10px;border-radius:20px;
+}
+</style>
 </head>
-<body class="dark">
+<body>
+<div class="card">
 
-<div class="auth-container">
-<div class="auth-box">
-
-  <div class="auth-logo">
-    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard" style="height:48px;width:auto;margin-bottom:4px;">
+  <div class="card-header">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="CyberGuard">
+    <h1>Welcome Back</h1>
+    <p>Sign in to report and track cyber incidents</p>
   </div>
-  <h1>Welcome Back</h1>
-  <p>Sign in to report and track your cyber incidents</p>
 
-  <div id="loginStatus" class="status-msg" style="min-height:18px;"></div>
+  <div class="card-body">
 
-  <form id="loginForm" onsubmit="doLogin(event)">
-    <input type="text" id="username" name="username" placeholder="College Email / Admin ID" required>
-    <input type="password" id="password" name="password" placeholder="Password" required>
-    <div class="show-password">
-      <input type="checkbox" onclick="showPass()"> Show Password
+    <div id="loginStatus" class="status-msg"></div>
+
+    <form id="loginForm" onsubmit="doLogin(event)">
+
+      <div class="field">
+        <label>Email / Admin ID</label>
+        <div class="input-wrap">
+          <span class="icon">📧</span>
+          <input type="text" id="username" name="username" placeholder="your@email.com" required autocomplete="username">
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="icon">🔒</span>
+          <input type="password" id="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+        </div>
+      </div>
+
+      <label class="show-row">
+        <input type="checkbox" onchange="togglePass(this)"> Show Password
+      </label>
+
+      <button type="submit" id="loginBtn" class="btn-login">Sign In →</button>
+
+    </form>
+
+    <div class="divider"><span>or</span></div>
+
+    <div class="links">
+      <a href="/forgot-password">Forgot Password?</a>
+      <a href="/register">Create Account</a>
     </div>
-    <button type="submit" id="loginBtn">Login →</button>
-  </form>
 
-  <div class="auth-links">
-    <a href="/forgot-password">Forgot Password?</a>
-    <a href="/register">New Student? Register Here</a>
+    <div class="badge-row">
+      <span class="badge">🔐 Secure Login</span>
+      <span class="badge">🛡️ Encrypted</span>
+      <span class="badge">🇮🇳 India Cybercrime Portal</span>
+    </div>
+
   </div>
 
-</div>
+  <div class="register-cta">
+    New here? <a href="/register">Register your account</a> to file a complaint.
+  </div>
+
 </div>
 
 <script>
-function showPass() {
-  var x = document.getElementById("password");
-  x.type = x.type === "password" ? "text" : "password";
+function togglePass(cb){
+  document.getElementById("password").type=cb.checked?"text":"password";
 }
-function doLogin(e) {
+function doLogin(e){
   e.preventDefault();
-  var btn = document.getElementById("loginBtn");
-  var st  = document.getElementById("loginStatus");
-  btn.textContent = "Signing in...";
-  btn.disabled = true;
-  st.textContent = "";
-  st.style.color = "";
-  fetch("/login", { method:"POST", body: new FormData(document.getElementById("loginForm")) })
-  .then(function(r){ return r.json(); })
+  var btn=document.getElementById("loginBtn");
+  var st=document.getElementById("loginStatus");
+  btn.textContent="Signing in…";btn.disabled=true;
+  st.className="status-msg";st.textContent="";
+  fetch("/login",{method:"POST",body:new FormData(document.getElementById("loginForm"))})
+  .then(function(r){return r.json();})
   .then(function(d){
-    if (d.status === "success") {
-      st.textContent = "✅ " + d.message;
-      st.style.color = "#16a34a";
-      setTimeout(function(){ window.location.href = d.role === "admin" ? "/dashboard" : "/home"; }, 1000);
+    if(d.status==="success"){
+      st.className="status-msg show";
+      st.style.background="#f0fdf4";st.style.color="#15803d";st.style.border="1px solid #bbf7d0";
+      st.textContent="✅ "+d.message;
+      setTimeout(function(){window.location.href=d.role==="admin"?"/dashboard":"/home";},1000);
     } else {
-      st.textContent = "❌ " + d.message;
-      st.style.color = "#e63946";
-      btn.textContent = "Login →";
-      btn.disabled = false;
+      st.className="status-msg show";
+      st.style.background="#fff5f5";st.style.color="#e63946";st.style.border="1px solid #fecaca";
+      st.textContent="❌ "+d.message;
+      btn.textContent="Sign In →";btn.disabled=false;
     }
   })
   .catch(function(){
-    st.textContent = "❌ Server error. Try again.";
-    st.style.color = "#e63946";
-    btn.textContent = "Login →";
-    btn.disabled = false;
+    st.className="status-msg show";
+    st.style.background="#fff5f5";st.style.color="#e63946";st.style.border="1px solid #fecaca";
+    st.textContent="❌ Server error. Try again.";
+    btn.textContent="Sign In →";btn.disabled=false;
   });
 }
 </script>
 <script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js');
-  });
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js');});
 }
 </script>
 </body>

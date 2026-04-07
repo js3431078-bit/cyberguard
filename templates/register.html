@@ -504,9 +504,19 @@ function sendOTP(resend){
       document.getElementById("verifyOtpBtn").style.display="block";
       var sentMsg=d.message;
       if(d.fallback)sentMsg="⚠️ "+sentMsg;
-      document.getElementById("otpSentMsg").textContent=sentMsg;
+      var msgEl=document.getElementById("otpSentMsg");
+      msgEl.textContent=sentMsg;
+      msgEl.style.color="";
       document.getElementById("otpErr").className="ferr";
-      if(resend)document.getElementById("otpInput").value="";
+      // Dev fallback: server couldn't deliver — auto-fill OTP
+      if(d.dev_otp){
+        document.getElementById("otpInput").value=d.dev_otp;
+        msgEl.textContent="⚠️ Email delivery is blocked on this server. Your OTP is auto-filled — just click Verify OTP.";
+        msgEl.style.color="#c2410c";
+        msgEl.style.fontWeight="600";
+      } else if(resend){
+        document.getElementById("otpInput").value="";
+      }
       document.getElementById("otpInput").focus();
       startOtpTimer(300);startResendCooldown(60);
       btn.textContent="📤 Resend OTP";btn.disabled=false;

@@ -242,7 +242,6 @@ import smtplib, requests as _requests
 from email.mime.text import MIMEText
 
 def _mask_email(email):
-    """Safely mask email for display."""
     try:
         at = email.index("@")
         return email[:min(3, at)] + "***" + email[at:]
@@ -250,24 +249,31 @@ def _mask_email(email):
         return "***"
 
 def _send_email_otp(to_email, otp):
-    smtp_user = os.environ.get("SMTP_USER", "").strip()
-    smtp_pass = os.environ.get("SMTP_PASS", "").strip()
-    if not smtp_user or not smtp_pass:
-        raise ValueError("SMTP not configured")
-    body = (
-        "Your CyberGuard registration OTP is: " + otp + "\n\n"
-        "Valid for 5 minutes. Do not share this with anyone.\n\n"
-        "--- CyberGuard Security Team"
+    """Send OTP via Resend HTTP API — works on Railway free tier (HTTPS only)."""
+    resend_key = os.environ.get("RESEND_KEY", "").strip()
+    if not resend_key:
+        raise ValueError("RESEND_KEY not configured in environment variables.")
+
+    resp = _requests.post(
+        "https://api.resend.com/emails",
+        headers={
+            "Authorization": f"Bearer {resend_key}",
+            "Content-Type": "application/json"
+        },
+        json={
+            "from":    "CyberGuard Portal <onboarding@resend.dev>",
+            "to":      [to_email],
+            "subject": "CyberGuard — Email Verification OTP",
+            "text":    (
+                f"Your CyberGuard registration OTP is: {otp}\n\n"
+                f"Valid for 5 minutes. Do not share this with anyone.\n\n"
+                f"— CyberGuard Security Team"
+            )
+        },
+        timeout=10
     )
-    msg = MIMEText(body)
-    msg["Subject"] = "CyberGuard Email Verification OTP"
-    msg["From"]    = smtp_user
-    msg["To"]      = to_email
-    import ssl as _ssl
-    ctx = _ssl.create_default_context()
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx, timeout=8) as s:
-        s.login(smtp_user, smtp_pass)
-        s.send_message(msg)
+    if resp.status_code not in (200, 201):
+        raise ValueError(f"Resend error {resp.status_code}: {resp.text[:200]}")
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY", "").strip()
@@ -466,7 +472,7 @@ def register_user():
         return jsonify({"status":"duplicate","message":"This account is already registered. Redirecting to login..."})
     conn.close()
     log_activity("register", f"New user registered: {name}", user_email=email)
-    return jsonify({"status":"success","message":"Your account has been successfully created in the Cyber Crime Portal."})
+    return jsonify({"status":"success","message":"Account created successfully! Redirecting to login..."})
 
 @app.route("/forgot-password")
 def forgot_password_page():

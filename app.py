@@ -834,10 +834,11 @@ def submit_complaint():
         conn.commit()
         conn.close()
 
-        # Format unique complaint ID: CG-YYYY-XXXXX
+        # Format unique complaint ID: CG-YYYYMMDD-RANDOM6
+        import secrets as _sec
         from datetime import datetime as dt
-        year = dt.now().year
-        formatted_id = f"CG-{year}-{complaint_id:05d}"
+        rand_part = _sec.token_hex(3).upper()  # 6 random hex chars
+        formatted_id = f"CG-{dt.now().strftime('%Y%m%d')}-{rand_part}"
 
         log_activity("complaint_submitted", f"ID: {formatted_id}, Crime: {crime_type}")
 

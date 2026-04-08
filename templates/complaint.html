@@ -596,14 +596,36 @@ document.getElementById("vidUp").addEventListener("change", function() {
 // ── Submit ──
 function submitComplaint(e) {
   e.preventDefault();
-  // validate date
+
+  // ── Validate all required fields ──────────────────────────────────────────
+  var errors = [];
+
+  var name = document.querySelector('[name="name"]');
+  if (!name || !name.value.trim()) errors.push("Full Name is required.");
+
+  var email = document.querySelector('[name="email"]');
+  if (!email || !email.value.trim()) errors.push("College Email is required.");
+  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.value.trim())) errors.push("Enter a valid email address.");
+
+  var phone = document.querySelector('[name="phone"]');
+  if (!phone || phone.value.trim().length !== 10) errors.push("Mobile Number must be 10 digits.");
+
+  var address = document.getElementById("collegeInput");
+  if (!address || !address.value.trim()) errors.push("College / University name is required.");
+
+  var desc = document.getElementById("descTA");
+  if (!desc || desc.value.trim().length < 20) errors.push("Please describe the incident (at least 20 characters).");
+
   var d = document.getElementById("inc_day").value;
   var m = document.getElementById("inc_month").value;
   var y = document.getElementById("inc_year").value;
-  if (!d || !m || !y) {
-    alert("Please select the full incident date (Day, Month, Year).");
+  if (!d || !m || !y) errors.push("Please select the full incident date (Day, Month, Year).");
+
+  if (errors.length > 0) {
+    alert("⚠️ Please fix the following:\n\n" + errors.join("\n"));
     return;
   }
+
   buildDate();
   var btn = document.getElementById("submitBtn");
   btn.innerHTML = '<span class="spin"></span> Submitting...';

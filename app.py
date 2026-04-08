@@ -1381,82 +1381,36 @@ def chat():
 
 
 def _send_complaint_email(complaint_id, name, email, crime_type, description, date):
-    """Send email notification — works if SMTP env vars are set."""
+    """Send complaint confirmation via Resend HTTP API — non-blocking."""
     try:
-        import smtplib
-        from email.mime.text import MIMEText
-        from email.mime.multipart import MIMEMultipart
+        resend_key = os.environ.get("RESEND_KEY", "").strip()
+        if not resend_key:
+            return  # Skip silently if not configured
 
-        smtp_host  = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-        smtp_port  = int(os.environ.get("SMTP_PORT", "587"))
-        smtp_user  = os.environ.get("SMTP_USER", "")
-        smtp_pass  = os.environ.get("SMTP_PASS", "")
-        admin_mail = os.environ.get("ADMIN_EMAIL", smtp_user)
+        smtp_user = os.environ.get("SMTP_USER", "").strip()
+        from_addr = f"CyberGuard <{smtp_user}>" if smtp_user else "CyberGuard <onboarding@resend.dev>"
 
-        if not smtp_user or not smtp_pass:
-            return  # SMTP not configured — skip silently
+        confirm_body = (
+            f"Dear {name},\n\n"
+            f"Your complaint has been registered on CyberGuard Portal.\n\n"
+            f"Complaint ID : {complaint_id}\n"
+            f"Crime Type   : {crime_type}\n"
+            f"Status       : Pending Review\n\n"
+            f"Track your complaint on the portal.\n"
+            f"For urgent help, call: 1930\n\n"
+            f"Stay safe,\nCyberGuard Team"
+        )
 
-        subject = f"[CyberGuard] New Complaint {complaint_id} — {crime_type}"
-        body = f"""
-New cybercrime complaint submitted on CyberGuard Portal.
-
-Complaint ID : {complaint_id}
-Name         : {name}
-Email        : {email}
-Crime Type   : {crime_type}
-Incident Date: {date}
-
-Description:
-{description[:800]}
-
----
-View on cybercrime.gov.in: https://cybercrime.gov.in
-CyberGuard Portal — Student Cybercrime Reporting System
-        """.strip()
-
-        msg = MIMEMultipart()
-        msg["From"]    = smtp_user
-        msg["To"]      = admin_mail
-        msg["Subject"] = subject
-        msg.attach(MIMEText(body, "plain"))
-
-        # Also send confirmation to complainant
-        confirm_body = f"""
-Dear {name},
-
-Your complaint has been successfully registered on CyberGuard Portal.
-
-Complaint ID : {complaint_id}
-Crime Type   : {crime_type}
-Status       : Pending Review
-
-Please save your Complaint ID to track the status of your report.
-
-Next Steps:
-1. Our team will review your complaint within 24-48 hours.
-2. You can also file at: https://cybercrime.gov.in
-3. For urgent help, call: 1930
-
-Stay safe,
-CyberGuard Team
-        """.strip()
-
-        confirm_msg = MIMEMultipart()
-        confirm_msg["From"]    = smtp_user
-        confirm_msg["To"]      = email
-        confirm_msg["Subject"] = f"Complaint Registered — {complaint_id} | CyberGuard"
-        confirm_msg.attach(MIMEText(confirm_body, "plain"))
-
-        with smtplib.SMTP(smtp_host, smtp_port) as server:
-            server.starttls()
-            server.login(smtp_user, smtp_pass)
-            server.send_message(msg)
-            if email and email != smtp_user:
-                server.send_message(confirm_msg)
-
-        logging.info(f"Complaint email sent for {complaint_id}")
+        import requests as _req
+        _req.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {resend_key}", "Content-Type": "application/json"},
+            json={"from": from_addr, "to": [email], "subject": f"Complaint Registered — {complaint_id} | CyberGuard", "text": confirm_body},
+            timeout=8
+        )
+        logging.info(f"Complaint confirmation sent for {complaint_id}")
     except Exception as e:
-        logging.warning(f"Email send failed (non-critical): {e}")
+        logging.warning(f"Complaint email failed (non-critical): {e}")
 
 
 def _log_ai(msg, reply, hindi=False):

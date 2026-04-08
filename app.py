@@ -1149,8 +1149,10 @@ def analyze():
     # Save analysis to DB
     try:
         conn = get_db()
-        conn.execute(
-            "INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES(?,?,?,?,?,?,?,?)",
+        p = ph_for(conn)
+        cur = conn.cursor()
+        cur.execute(
+            f"INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES({p},{p},{p},{p},{p},{p},{p},{p})",
             (session.get("email","anonymous"), text[:500], r["crime"], r["category"], r["threat"], r["confidence"], lang, "analyze")
         )
         conn.commit()
@@ -1400,8 +1402,10 @@ def _log_ai(msg, reply, hindi=False):
     try:
         r = analyze_text(msg.lower())
         conn = get_db()
-        conn.execute(
-            "INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES(?,?,?,?,?,?,?,?)",
+        p = ph_for(conn)
+        cur = conn.cursor()
+        cur.execute(
+            f"INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES({p},{p},{p},{p},{p},{p},{p},{p})",
             (session.get("email","anonymous"), msg[:500], r["crime"], r["category"],
              r["threat"], r["confidence"], "hi" if hindi else "en", "chatbot")
         )
@@ -1551,8 +1555,10 @@ def _smart_reply(msg, hindi):
     if r["crime"] != "Other Cyber Crime":
         try:
             conn = get_db()
-            conn.execute(
-                "INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES(?,?,?,?,?,?,?,?)",
+            p = ph_for(conn)
+            cur = conn.cursor()
+            cur.execute(
+                f"INSERT INTO ai_analysis_logs(user_email,input_text,crime,category,threat,confidence,language,source) VALUES({p},{p},{p},{p},{p},{p},{p},{p})",
                 (session.get("email","anonymous"), msg[:500], r["crime"], r["category"], r["threat"], r["confidence"], "hi" if hindi else "en", "chatbot")
             )
             conn.commit(); conn.close()

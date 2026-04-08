@@ -167,9 +167,11 @@ def log_activity(action, detail="", user_email=None):
     try:
         email = user_email or session.get("email", "anonymous")
         ip    = request.remote_addr or "unknown"
+        p     = ph()
         conn  = get_db()
-        conn.execute(
-            "INSERT INTO activity_logs(user_email, action, detail, ip) VALUES(?,?,?,?)",
+        cur   = conn.cursor()
+        cur.execute(
+            f"INSERT INTO activity_logs(user_email, action, detail, ip) VALUES({p},{p},{p},{p})",
             (email, action, detail, ip)
         )
         conn.commit()
@@ -503,22 +505,38 @@ def verify_otp():
 
 @app.route("/register", methods=["POST"])
 def register_user():
-    d = request.json
-    name, email, phone, password = d.get("name","").strip(), d.get("email","").strip(), d.get("phone","").strip(), d.get("password","")
+    d = request.json or {}
+    name     = d.get("name","").strip()
+    email    = d.get("email","").strip()
+    phone    = d.get("phone","").strip()
+    password = d.get("password","")
     if not all([name, email, phone, password]):
         return jsonify({"status":"error","message":"All fields are required."})
+    if not session.get("otp_verified"):
+        return jsonify({"status":"error","message":"OTP not verified. Please verify your email first."})
     if not session.get("captcha_verified"):
         return jsonify({"status":"error","message":"CAPTCHA not verified."})
     session.pop("captcha_verified", None)
+    session.pop("otp_verified", None)
+    session.pop("otp_token", None)
+    p = ph()
     conn = get_db()
+    cur  = conn.cursor()
     try:
-        conn.execute("INSERT INTO users(name,email,phone,password) VALUES(?,?,?,?)",(name,email,phone,password))
+        cur.execute(
+            f"INSERT INTO users(name,email,phone,password) VALUES({p},{p},{p},{p})",
+            (name, email, phone, password)
+        )
         conn.commit()
-    except sqlite3.IntegrityError:
         conn.close()
-        log_activity("register_failed", f"Duplicate email: {email}", user_email=email)
-        return jsonify({"status":"duplicate","message":"This account is already registered. Redirecting to login..."})
-    conn.close()
+    except Exception as ex:
+        conn.close()
+        err = str(ex).lower()
+        if "unique" in err or "duplicate" in err:
+            log_activity("register_failed", f"Duplicate email: {email}", user_email=email)
+            return jsonify({"status":"duplicate","message":"This account is already registered. Redirecting to login..."})
+        logging.error(f"register_user error: {ex}")
+        return jsonify({"status":"error","message":f"Registration failed: {ex}"})
     log_activity("register", f"New user registered: {name}", user_email=email)
     return jsonify({"status":"success","message":"Account created successfully! Redirecting to login..."})
 
@@ -528,16 +546,19 @@ def forgot_password_page():
 
 @app.route("/reset-password", methods=["POST"])
 def reset_password():
-    d = request.json
+    d        = request.json or {}
     email    = d.get("email","").strip()
     new_pass = d.get("new_password","")
+    p    = ph()
     conn = get_db()
-    user = conn.execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+    cur  = conn.cursor()
+    cur.execute(f"SELECT id FROM users WHERE email={p}", (email,))
+    user = db_fetchone(cur)
     if not user:
         conn.close()
         log_activity("password_reset_failed", f"Email not found: {email}", user_email=email)
         return jsonify({"success": False, "message": "Email not registered."})
-    conn.execute("UPDATE users SET password=? WHERE email=?", (new_pass, email))
+    cur.execute(f"UPDATE users SET password={p} WHERE email={p}", (new_pass, email))
     conn.commit()
     conn.close()
     log_activity("password_reset", "Password reset successfully", user_email=email)
@@ -556,8 +577,11 @@ def login():
             log_activity("login", "Admin login", user_email="admin")
             return jsonify({"status":"success","role":"admin","message":"Welcome Admin! Redirecting to dashboard..."})
         # User check
+        p    = ph()
         conn = get_db()
-        user = conn.execute("SELECT * FROM users WHERE email=? AND password=?",(username,password)).fetchone()
+        cur  = conn.cursor()
+        cur.execute(f"SELECT * FROM users WHERE email={p} AND password={p}", (username, password))
+        user = db_fetchone(cur)
         conn.close()
         if user:
             session["role"]  = "user"

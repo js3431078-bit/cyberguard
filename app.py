@@ -326,30 +326,44 @@ def _mask_email(email):
         return "***"
 
 def _send_email_otp(to_email, otp):
-    """Send OTP via Gmail SMTP using app password."""
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
-    smtp_user = os.environ.get("SMTP_USER", "").strip()
-    smtp_pass = os.environ.get("SMTP_PASS", "").strip()
+    """Send OTP via Gmail SMTP SSL (port 465) — works on Railway free tier."""
+    import ssl as _ssl
 
-    if not smtp_user or not smtp_pass:
-        raise ValueError("SMTP_USER and SMTP_PASS must be set in environment variables.")
+    gmail_user = os.environ.get("SMTP_USER", "").strip()
+    gmail_pass = os.environ.get("SMTP_PASS", "").strip()
 
-    msg = MIMEText(
-        f"Your CyberGuard registration OTP is: {otp}\n\n"
-        f"Valid for 5 minutes. Do not share this with anyone.\n\n"
-        f"— CyberGuard Security Team",
-        "plain"
+    if not gmail_user or not gmail_pass:
+        raise ValueError("SMTP_USER / SMTP_PASS not set in environment.")
+
+    body = (
+        f"Hello,\n\n"
+        f"Your CyberGuard OTP is:  {otp}\n\n"
+        f"Valid for 5 minutes. Do not share it with anyone.\n\n"
+        f"— CyberGuard Security Team"
     )
+    msg = MIMEText(body, "plain")
     msg["Subject"] = "CyberGuard — Email Verification OTP"
-    msg["From"]    = f"CyberGuard Portal <{smtp_user}>"
+    msg["From"]    = f"CyberGuard Portal <{gmail_user}>"
     msg["To"]      = to_email
 
-    with smtplib.SMTP(smtp_host, smtp_port) as server:
-        server.ehlo()
-        server.starttls()
-        server.login(smtp_user, smtp_pass)
-        server.send_message(msg)
+    # Try strict SSL first (works on Railway/Linux), fall back to relaxed (Windows dev)
+    for verify in (True, False):
+        try:
+            ctx = _ssl.create_default_context()
+            if not verify:
+                ctx.check_hostname = False
+                ctx.verify_mode    = _ssl.CERT_NONE
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as srv:
+                srv.login(gmail_user, gmail_pass)
+                srv.send_message(msg)
+            logging.info(f"OTP sent via Gmail SSL to {_mask_email(to_email)}")
+            return
+        except _ssl.SSLError:
+            if verify:
+                continue   # retry with relaxed SSL
+            raise
+        except Exception:
+            raise
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY", "").strip()
@@ -728,7 +742,7 @@ def dashboard():
     """).fetchall()
     conn.close()
 
-    # Build full 7-day series (fill missing days with 0)
+    
     from datetime import date, timedelta
     trend_map = {row["day"]: row["cnt"] for row in trend_raw}
     trend_labels, trend_data = [], []

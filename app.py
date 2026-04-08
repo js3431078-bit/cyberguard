@@ -48,7 +48,7 @@ def db_fetchall(cursor):
         cols = [d[0] for d in cursor.description]
         return [dict(zip(cols, row)) for row in cursor.fetchall()]
     except Exception:
-        return [dict(row) for row in cursor.fetchall()]
+        return []
 
 def db_fetchone(cursor):
     """Convert row to dict — works for both psycopg2 and sqlite3."""
@@ -59,8 +59,7 @@ def db_fetchone(cursor):
         cols = [d[0] for d in cursor.description]
         return dict(zip(cols, row))
     except Exception:
-        row = cursor.fetchone() if not hasattr(cursor, '_fetched') else None
-        return dict(row) if row else None
+        return None
 
 def _is_pg(conn):
     """Check if this connection is PostgreSQL."""
@@ -85,7 +84,8 @@ def phs(n):
 def init_db():
     conn = get_db()
     cur  = conn.cursor()
-    if DATABASE_URL:
+    is_pg = _is_pg(conn)
+    if is_pg:
         cur.execute("""
         CREATE TABLE IF NOT EXISTS users(
             id       SERIAL PRIMARY KEY,
@@ -142,7 +142,6 @@ def init_db():
             timestamp  TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
         )""")
     else:
-        import sqlite3
         cur.executescript("""
         CREATE TABLE IF NOT EXISTS users(
             id INTEGER PRIMARY KEY AUTOINCREMENT,

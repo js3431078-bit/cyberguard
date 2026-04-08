@@ -23,20 +23,24 @@ ADMIN_ID       = "admin"
 ADMIN_PASSWORD = "admin123"
 
 # ── DB — PostgreSQL (Supabase) with SQLite fallback ──────────────────────────
-DATABASE_URL = os.environ.get("DATABASE_URL", "")
+_raw_db_url = os.environ.get("DATABASE_URL", "")
+# Railway sometimes injects postgres:// — psycopg2 needs postgresql://
+DATABASE_URL = _raw_db_url.replace("postgres://", "postgresql://", 1) if _raw_db_url else ""
 
 def get_db():
     if DATABASE_URL:
-        import psycopg2
-        import psycopg2.extras
-        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
-        conn.autocommit = False
-        return conn
-    else:
-        import sqlite3
-        conn = sqlite3.connect("cybercrime.db")
-        conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            import psycopg2
+            import psycopg2.extras
+            conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+            conn.autocommit = False
+            return conn
+        except Exception as pg_err:
+            logging.error(f"PostgreSQL connection failed, falling back to SQLite: {pg_err}")
+    import sqlite3
+    conn = sqlite3.connect("cybercrime.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
 def db_fetchall(cursor):
     """Convert psycopg2 rows to list of dicts."""
@@ -56,6 +60,14 @@ def db_fetchone(cursor):
     else:
         row = cursor.fetchone()
         return dict(row) if row else None
+
+def _is_pg(conn):
+    """Check if connection is PostgreSQL."""
+    try:
+        import psycopg2
+        return isinstance(conn, psycopg2.extensions.connection)
+    except Exception:
+        return False
 
 def ph(n=1):
     """Return placeholder — %s for postgres, ? for sqlite."""

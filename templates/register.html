@@ -468,13 +468,6 @@ function verifyCaptcha(){
 
 // ── OTP ───────────────────────────────────────────────────────────────────────
 var otpVerified=false,otpTimerInt=null,resendInt=null;
-function getMethod(){return document.querySelector('input[name="otpMethod"]:checked').value;}
-function updateOtpHint(){
-  var m=getMethod();
-  document.getElementById("otpHint").textContent=
-    m==="email"?"OTP will be sent to your email address.":"OTP will be sent via SMS to your phone number.";
-}
-updateOtpHint();
 
 function sendOTP(resend){
   if(!captchaVerified){alert("Please complete CAPTCHA verification first (Step 1).");return;}
@@ -501,13 +494,13 @@ function sendOTP(resend){
       btn.textContent="📤 Resend OTP";btn.disabled=false;
     } else {
       alert(d.message||"Failed to send OTP.");
-      btn.textContent="📤 Send OTP";btn.disabled=false;
+      btn.textContent="📤 Send OTP to Email";btn.disabled=false;
     }
   })
   .catch(function(err){
     console.error("send-otp fetch error:",err);
-    alert("Network error. Please check your connection and try again.");
-    btn.textContent="📤 Send OTP";btn.disabled=false;
+    alert("Failed to send OTP: "+err.message);
+    btn.textContent="📤 Send OTP to Email";btn.disabled=false;
   });
 }
 
@@ -547,8 +540,6 @@ function verifyOTP(){
       document.getElementById("sendOtpBtn").style.display="none";
       document.getElementById("verifyOtpBtn").style.display="none";
       document.getElementById("otpOkBadge").className="vbadge show";
-      document.querySelector(".method-g").style.display="none";
-      document.getElementById("otpHint").style.display="none";
     } else {
       showOtpErr(d.message||"Incorrect OTP.");
       btn.textContent="✔ Verify OTP";btn.disabled=false;

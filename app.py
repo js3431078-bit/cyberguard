@@ -447,13 +447,13 @@ def _send_sms_otp(phone, otp):
 @app.route("/send-otp", methods=["POST"])
 def send_otp():
     try:
-        data   = request.json or {}
-        email  = data.get("email", "").strip()
+        data  = request.json or {}
+        email = data.get("email", "").strip()
 
         if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
             return jsonify({"status": "error", "message": "Valid email is required."})
 
-        # Rate limiting
+        # Rate limiting via session
         sends = session.get("otp_sends", 0)
         last  = session.get("otp_last_send", 0.0)
         if time.time() - last > 600:
@@ -461,27 +461,14 @@ def send_otp():
         if sends >= 5:
             return jsonify({"status": "error", "message": "Too many requests. Wait 10 minutes."})
 
-        otp   = str(random.randint(100000, 999999))
-        import secrets as _secrets
-        token = _secrets.token_hex(16)
+        otp = str(random.randint(100000, 999999))
 
-        # Store OTP in DB with correct placeholders for both SQLite and PostgreSQL
-        conn = get_db()
-        p    = ph_for(conn)
-        cur  = conn.cursor()
-        cur.execute(f"DELETE FROM otp_store WHERE created < {p}", (time.time() - 600,))
-        cur.execute(
-            f"INSERT INTO otp_store(token, otp, created, attempts, verified) "
-            f"VALUES({p},{p},{p},0,0) "
-            + ("ON CONFLICT(token) DO UPDATE SET otp=EXCLUDED.otp, created=EXCLUDED.created, attempts=0, verified=0"
-               if _is_pg(conn) else
-               "ON CONFLICT(token) DO UPDATE SET otp=excluded.otp, created=excluded.created, attempts=0, verified=0"),
-            (token, otp, time.time())
-        )
-        conn.commit()
-        conn.close()
-
-        session["otp_token"]     = token
+        # Store OTP directly in session — no DB needed
+        session["otp_code"]      = otp
+        session["otp_email"]     = email
+        session["otp_time"]      = time.time()
+        session["otp_attempts"]  = 0
+        session["otp_verified"]  = False
         session["otp_sends"]     = sends + 1
         session["otp_last_send"] = time.time()
         session.modified         = True
@@ -493,18 +480,9 @@ def send_otp():
             return jsonify({"status": "sent", "message": f"OTP sent to {_mask_email(email)}"})
         except Exception as e:
             logging.error(f"Email OTP failed: {e}")
-            # Clean up token on failure
-            try:
-                conn2 = get_db()
-                cur2  = conn2.cursor()
-                cur2.execute(f"DELETE FROM otp_store WHERE token={ph_for(conn2)}", (token,))
-                conn2.commit()
-                conn2.close()
-            except Exception:
-                pass
-            session.pop("otp_token", None)
+            session.pop("otp_code", None)
             session.modified = True
-            return jsonify({"status": "error", "message": f"Failed to send OTP email: {str(e)}"})
+            return jsonify({"status": "error", "message": f"Failed to send OTP: {str(e)}"})
 
     except Exception as ex:
         logging.error(f"send_otp crash: {ex}")
@@ -516,47 +494,32 @@ def verify_otp():
     try:
         data   = request.json or {}
         otp_in = data.get("otp", "").strip()
-        token  = session.get("otp_token", "")
 
-        if not token:
-            return jsonify({"status": "error", "message": "Session expired. Please request a new OTP."})
+        stored_otp  = session.get("otp_code", "")
+        stored_time = session.get("otp_time", 0)
+        attempts    = session.get("otp_attempts", 0)
+
+        if not stored_otp:
+            return jsonify({"status": "error", "message": "No OTP found. Please request a new one."})
         if not otp_in or len(otp_in) != 6:
             return jsonify({"status": "error", "message": "Enter the 6-digit OTP."})
-
-        conn = get_db()
-        p    = ph_for(conn)
-        cur  = conn.cursor()
-        cur.execute(
-            f"SELECT otp, created, attempts FROM otp_store WHERE token={p} AND verified=0",
-            (token,)
-        )
-        row = db_fetchone(cur)
-
-        if not row:
-            conn.close()
-            return jsonify({"status": "error", "message": "OTP not found or already used. Request a new one."})
-
-        attempts = row["attempts"]
-
         if attempts >= 5:
-            cur.execute(f"DELETE FROM otp_store WHERE token={p}", (token,))
-            conn.commit(); conn.close()
+            session.pop("otp_code", None)
+            session.modified = True
             return jsonify({"status": "error", "message": "Too many wrong attempts. Request a new OTP."})
-
-        if time.time() - float(row["created"]) > 300:
-            cur.execute(f"DELETE FROM otp_store WHERE token={p}", (token,))
-            conn.commit(); conn.close()
+        if time.time() - stored_time > 300:
+            session.pop("otp_code", None)
+            session.modified = True
             return jsonify({"status": "error", "message": "OTP expired. Please request a new one."})
-
-        if otp_in != str(row["otp"]):
-            cur.execute(f"UPDATE otp_store SET attempts={p} WHERE token={p}", (attempts + 1, token))
-            conn.commit(); conn.close()
+        if otp_in != stored_otp:
+            session["otp_attempts"] = attempts + 1
+            session.modified = True
             left = 4 - attempts
             return jsonify({"status": "error", "message": f"Incorrect OTP. {left} attempt(s) left."})
 
-        cur.execute(f"UPDATE otp_store SET verified=1 WHERE token={p}", (token,))
-        conn.commit(); conn.close()
+        # OTP correct
         session["otp_verified"] = True
+        session.pop("otp_code", None)
         session.modified = True
         return jsonify({"status": "verified", "message": "OTP verified successfully."})
 

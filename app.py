@@ -36,7 +36,7 @@ def get_db():
             conn.autocommit = False
             return conn
         except Exception as pg_err:
-            logging.error(f"PostgreSQL connection failed, falling back to SQLite: {pg_err}")
+            logging.error(f"PostgreSQL failed, using SQLite: {pg_err}")
     import sqlite3
     conn = sqlite3.connect("cybercrime.db")
     conn.row_factory = sqlite3.Row
@@ -199,7 +199,48 @@ try:
     init_db()
     logging.info("Database initialized successfully.")
 except Exception as _init_err:
-    logging.error(f"init_db failed (non-fatal): {_init_err}")
+    logging.error(f"init_db failed: {_init_err}")
+    # Force create SQLite tables as emergency fallback
+    try:
+        import sqlite3 as _sq
+        _ec = _sq.connect("cybercrime.db")
+        _ec.executescript("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
+            phone TEXT, password TEXT NOT NULL,
+            created TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS otp_store(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT UNIQUE NOT NULL, otp TEXT NOT NULL,
+            created REAL NOT NULL, attempts INTEGER DEFAULT 0, verified INTEGER DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS complaints(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, name TEXT, email TEXT, phone TEXT, address TEXT,
+            crime_type TEXT, description TEXT, file TEXT, date TEXT,
+            status TEXT DEFAULT 'Pending',
+            submitted TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS activity_logs(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, action TEXT NOT NULL, detail TEXT, ip TEXT,
+            timestamp TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS ai_analysis_logs(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, input_text TEXT, crime TEXT, category TEXT,
+            threat TEXT, confidence TEXT, language TEXT,
+            source TEXT DEFAULT 'analyze',
+            timestamp TEXT DEFAULT (datetime('now','localtime'))
+        );
+        """)
+        _ec.commit()
+        _ec.close()
+        logging.info("SQLite emergency tables created.")
+    except Exception as _sq_err:
+        logging.error(f"SQLite emergency init failed: {_sq_err}")
 
 # ── AI ───────────────────────────────────────────────────────────────────────
 CRIME_RULES = [

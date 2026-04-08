@@ -34,6 +34,15 @@ def get_db():
             import psycopg2.extras
             conn = psycopg2.connect(DATABASE_URL, sslmode="require")
             conn.autocommit = False
+            # Add execute() method to psycopg2 connection for compatibility
+            def _pg_execute(sql, params=None):
+                cur = conn.cursor()
+                # Convert ? to %s for PostgreSQL
+                sql = sql.replace("?", "%s")
+                cur.execute(sql, params or ())
+                cur.conn = conn
+                return cur
+            conn.execute = _pg_execute
             return conn
         except Exception as pg_err:
             logging.error(f"PostgreSQL failed, using SQLite: {pg_err}")
@@ -1122,13 +1131,16 @@ def track_complaint():
 
         if raw_id is not None:
             conn = get_db()
-            row = conn.execute(
-                "SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id=? AND user_email=?",
+            p = ph_for(conn)
+            cur = conn.cursor()
+            cur.execute(
+                f"SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id={p} AND user_email={p}",
                 (raw_id, session["email"])
-            ).fetchone()
+            )
+            row = db_fetchone(cur)
             conn.close()
             if row:
-                result = dict(row)
+                result = row
                 from datetime import datetime as dt
                 result["formatted_id"] = f"CG-{dt.now().year}-{result['id']:05d}"
             else:
@@ -1143,13 +1155,20 @@ def api_stats():
     if session.get("role") != "admin":
         return jsonify({"error":"unauthorized"}), 403
     conn = get_db()
+    is_pg = _is_pg(conn)
+    today_sql = "date(submitted::timestamp)=CURRENT_DATE" if is_pg else "date(submitted)=date('now','localtime')"
+    def count(sql):
+        cur = conn.cursor()
+        cur.execute(sql)
+        row = cur.fetchone()
+        return row[0] if row else 0
     stats = {
-        "total":    conn.execute("SELECT COUNT(*) FROM complaints").fetchone()[0],
-        "pending":  conn.execute("SELECT COUNT(*) FROM complaints WHERE status='Pending'").fetchone()[0],
-        "resolved": conn.execute("SELECT COUNT(*) FROM complaints WHERE status='Resolved'").fetchone()[0],
-        "users":    conn.execute("SELECT COUNT(*) FROM users").fetchone()[0],
-        "today":    conn.execute("SELECT COUNT(*) FROM complaints WHERE date(submitted)=date('now','localtime')").fetchone()[0],
-        "ai_logs":  conn.execute("SELECT COUNT(*) FROM ai_analysis_logs").fetchone()[0],
+        "total":    count("SELECT COUNT(*) FROM complaints"),
+        "pending":  count("SELECT COUNT(*) FROM complaints WHERE status='Pending'"),
+        "resolved": count("SELECT COUNT(*) FROM complaints WHERE status='Resolved'"),
+        "users":    count("SELECT COUNT(*) FROM users"),
+        "today":    count(f"SELECT COUNT(*) FROM complaints WHERE {today_sql}"),
+        "ai_logs":  count("SELECT COUNT(*) FROM ai_analysis_logs"),
     }
     conn.close()
     return jsonify(stats)

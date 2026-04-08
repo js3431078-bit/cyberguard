@@ -613,6 +613,32 @@ def contact():
 def about():
     return render_template("about.html")
 
+@app.route("/test-email")
+def test_email():
+    """Debug route — remove after fixing OTP. Visit /test-email to test Gmail SMTP."""
+    import smtplib, ssl as _ssl
+    user = os.environ.get("SMTP_USER","NOT_SET")
+    pwd  = os.environ.get("SMTP_PASS","NOT_SET")
+    resend = os.environ.get("RESEND_KEY","NOT_SET")
+    result = {
+        "SMTP_USER": user,
+        "SMTP_PASS_SET": "YES" if pwd != "NOT_SET" else "NO",
+        "RESEND_KEY_SET": "YES" if resend != "NOT_SET" else "NO",
+    }
+    if user == "NOT_SET" or pwd == "NOT_SET":
+        result["smtp_test"] = "SKIPPED — env vars missing"
+        return jsonify(result)
+    try:
+        ctx = _ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = _ssl.CERT_NONE
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as srv:
+            srv.login(user, pwd)
+            result["smtp_test"] = "LOGIN OK — Gmail SMTP works"
+    except Exception as e:
+        result["smtp_test"] = f"FAILED: {e}"
+    return jsonify(result)
+
 @app.route("/alerts")
 def alerts():
     if "email" not in session:

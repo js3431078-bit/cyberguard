@@ -1241,8 +1241,6 @@ def chat():
         if not msg:
             return jsonify({"reply": "Please type a message."})
 
-        log_activity("chatbot", f"Q: {msg[:100]}")
-
         SYSTEM = (
             "You are CyberBot, a friendly and intelligent AI assistant for India's Student Cybercrime Portal. "
             "You can answer questions about cybercrime, cyber safety, online fraud, hacking, phishing, "
@@ -1257,29 +1255,17 @@ def chat():
             "Keep responses under 200 words. Be conversational, warm and helpful like a real assistant."
         )
 
-        # Try Groq (llama-3.3-70b-versatile — best model)
-        groq_key = os.environ.get("GROQ_API_KEY", "")
+        ai_errors = []
+
+        # ── Try Groq ──────────────────────────────────────────────────────
+        groq_key = os.environ.get("GROQ_API_KEY", "").strip()
         if groq_key:
-            try:
-                from groq import Groq
-                client = Groq(api_key=groq_key)
-                completion = client.chat.completions.create(
-                    model="llama-3.3-70b-versatile",
-                    messages=[
-                        {"role": "system", "content": SYSTEM},
-                        {"role": "user",   "content": msg}
-                    ],
-                    max_tokens=350, temperature=0.8,
-                )
-                reply = completion.choices[0].message.content.strip()
-                _log_ai(msg, reply)
-                return jsonify({"reply": reply})
-            except Exception as e:
-                logging.warning(f"Groq llama-3.3 error: {e}")
-                # Try fallback model
+            for model in ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"]:
                 try:
+                    from groq import Groq
+                    client = Groq(api_key=groq_key)
                     completion = client.chat.completions.create(
-                        model="llama-3.1-8b-instant",
+                        model=model,
                         messages=[
                             {"role": "system", "content": SYSTEM},
                             {"role": "user",   "content": msg}
@@ -1287,15 +1273,17 @@ def chat():
                         max_tokens=350, temperature=0.8,
                     )
                     reply = completion.choices[0].message.content.strip()
-                    _log_ai(msg, reply)
+                    logging.info(f"CyberBot replied via Groq {model}")
                     return jsonify({"reply": reply})
-                except Exception as e2:
-                    logging.warning(f"Groq fallback error: {e2}")
+                except Exception as e:
+                    ai_errors.append(f"Groq/{model}: {e}")
+                    logging.warning(f"Groq {model} error: {e}")
+                    continue
 
-        # Try Gemini as backup
-        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        # ── Try Gemini ────────────────────────────────────────────────────
+        gemini_key = os.environ.get("GEMINI_API_KEY", "").strip()
         if gemini_key:
-            for gmodel in ["gemini-2.0-flash-lite", "gemini-2.0-flash"]:
+            for gmodel in ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-1.5-flash"]:
                 try:
                     from google import genai as google_genai
                     gclient = google_genai.Client(api_key=gemini_key)
@@ -1304,13 +1292,15 @@ def chat():
                         contents=f"{SYSTEM}\n\nUser: {msg}"
                     )
                     reply = response.text.strip()
-                    _log_ai(msg, reply)
+                    logging.info(f"CyberBot replied via Gemini {gmodel}")
                     return jsonify({"reply": reply})
                 except Exception as e:
+                    ai_errors.append(f"Gemini/{gmodel}: {e}")
                     logging.warning(f"Gemini {gmodel} error: {e}")
                     continue
 
-        # Smart rule-based fallback
+        # ── All AI failed — log and use smart fallback ────────────────────
+        logging.error(f"All AI providers failed for chat: {' | '.join(ai_errors)}")
         return _smart_reply(msg, False)
 
     except Exception as ex:

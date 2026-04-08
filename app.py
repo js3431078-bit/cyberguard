@@ -791,11 +791,17 @@ def submit_complaint():
                 uf.save(os.path.join(app.config["UPLOAD_FOLDER"], fn))
                 file_objs.append(fn)
         conn = get_db()
-        cursor = conn.execute(
-            "INSERT INTO complaints(user_email,name,email,phone,address,crime_type,description,file,date,status) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        p = ph_for(conn)
+        cur = conn.cursor()
+        cur.execute(
+            f"INSERT INTO complaints(user_email,name,email,phone,address,crime_type,description,file,date,status) VALUES({p},{p},{p},{p},{p},{p},{p},{p},{p},{p})",
             (session["email"],name,email,phone,address,crime_type,description,",".join(file_objs),date,"Pending")
         )
-        complaint_id = cursor.lastrowid
+        if _is_pg(conn):
+            cur.execute("SELECT lastval()")
+            complaint_id = cur.fetchone()[0]
+        else:
+            complaint_id = cur.lastrowid
         conn.commit()
         conn.close()
 
@@ -838,21 +844,36 @@ def dashboard():
     if session["role"] != "admin":
         return redirect("/home")
     conn = get_db()
-    complaints_raw   = conn.execute("SELECT * FROM complaints ORDER BY id DESC").fetchall()
-    users_raw        = conn.execute("SELECT * FROM users ORDER BY id DESC").fetchall()
-    activity_raw     = conn.execute("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 50").fetchall()
-    ai_logs_raw      = conn.execute("SELECT * FROM ai_analysis_logs ORDER BY id DESC LIMIT 50").fetchall()
+    cur  = conn.cursor()
+    is_pg = _is_pg(conn)
 
-    # 7-day trend: count complaints submitted each day
-    trend_raw = conn.execute("""
-        SELECT date(submitted,'localtime') as day, COUNT(*) as cnt
-        FROM complaints
-        WHERE submitted >= date('now','localtime','-6 days')
-        GROUP BY day ORDER BY day
-    """).fetchall()
+    cur.execute("SELECT * FROM complaints ORDER BY id DESC")
+    complaints_raw = db_fetchall(cur)
+    cur.execute("SELECT * FROM users ORDER BY id DESC")
+    users_raw = db_fetchall(cur)
+    cur.execute("SELECT * FROM activity_logs ORDER BY id DESC LIMIT 50")
+    activity_raw = db_fetchall(cur)
+    cur.execute("SELECT * FROM ai_analysis_logs ORDER BY id DESC LIMIT 50")
+    ai_logs_raw = db_fetchall(cur)
+
+    # 7-day trend
+    if is_pg:
+        cur.execute("""
+            SELECT date(submitted::timestamp) as day, COUNT(*) as cnt
+            FROM complaints
+            WHERE submitted::timestamp >= NOW() - INTERVAL '6 days'
+            GROUP BY day ORDER BY day
+        """)
+    else:
+        cur.execute("""
+            SELECT date(submitted,'localtime') as day, COUNT(*) as cnt
+            FROM complaints
+            WHERE submitted >= date('now','localtime','-6 days')
+            GROUP BY day ORDER BY day
+        """)
+    trend_raw = db_fetchall(cur)
     conn.close()
 
-    
     from datetime import date, timedelta
     trend_map = {row["day"]: row["cnt"] for row in trend_raw}
     trend_labels, trend_data = [], []
@@ -861,13 +882,13 @@ def dashboard():
         trend_labels.append(d.strftime("%a %d"))
         trend_data.append(trend_map.get(d.isoformat(), 0))
 
-    complaints = [dict(c) for c in complaints_raw]
-    users      = [dict(u) for u in users_raw]
-    activity   = [dict(a) for a in activity_raw]
-    ai_logs    = [dict(a) for a in ai_logs_raw]
+    complaints = complaints_raw
+    users      = users_raw
+    activity   = activity_raw
+    ai_logs    = ai_logs_raw
     total    = len(complaints)
-    pending  = sum(1 for c in complaints if c["status"] == "Pending")
-    resolved = sum(1 for c in complaints if c["status"] == "Resolved")
+    pending  = sum(1 for c in complaints if c.get("status") == "Pending")
+    resolved = sum(1 for c in complaints if c.get("status") == "Resolved")
     return render_template("dashboard.html",
         complaints=complaints, users=users,
         activity=activity, ai_logs=ai_logs,
@@ -881,7 +902,9 @@ def update_status():
         return jsonify({"status":"error","message":"Unauthorized"})
     d = request.json
     conn = get_db()
-    conn.execute("UPDATE complaints SET status=? WHERE id=?",(d["status"],d["id"]))
+    p = ph_for(conn)
+    cur = conn.cursor()
+    cur.execute(f"UPDATE complaints SET status={p} WHERE id={p}", (d["status"], d["id"]))
     conn.commit()
     conn.close()
     log_activity("status_update", f"Complaint #{d['id']} → {d['status']}")

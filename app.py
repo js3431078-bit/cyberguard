@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from langdetect import detect
-import os, logging
+import os, logging, re
 from werkzeug.utils import secure_filename
 
 # Load .env if present
@@ -385,15 +385,12 @@ def _send_sms_otp(phone, otp):
 def send_otp():
     try:
         data   = request.json or {}
-        method = data.get("method", "email").strip()
         email  = data.get("email", "").strip()
-        phone  = data.get("phone", "").strip()
 
-        if method == "email" and not email:
-            return jsonify({"status": "error", "message": "Email is required."})
-        if method == "sms" and len(phone) != 10:
-            return jsonify({"status": "error", "message": "Valid 10-digit phone is required."})
+        if not email or not re.match(r"^[^\s@]+@[^\s@]+\.[^\s@]+$", email):
+            return jsonify({"status": "error", "message": "Valid email is required."})
 
+        # Rate limiting
         sends = session.get("otp_sends", 0)
         last  = session.get("otp_last_send", 0.0)
         if time.time() - last > 600:
@@ -401,75 +398,55 @@ def send_otp():
         if sends >= 5:
             return jsonify({"status": "error", "message": "Too many requests. Wait 10 minutes."})
 
-        otp = str(random.randint(100000, 999999))
+        otp   = str(random.randint(100000, 999999))
         import secrets as _secrets
         token = _secrets.token_hex(16)
 
-        # Store OTP in DB — avoids cookie size/session loss issues
+        # Store OTP in DB with correct placeholders for both SQLite and PostgreSQL
+        p = ph()
         conn = get_db()
-        conn.execute("DELETE FROM otp_store WHERE created < ?", (time.time() - 600,))
-        conn.execute("INSERT OR REPLACE INTO otp_store(token,otp,created,attempts,verified) VALUES(?,?,?,0,0)",
-                     (token, otp, time.time()))
+        cur  = conn.cursor()
+        cur.execute(f"DELETE FROM otp_store WHERE created < {p}", (time.time() - 600,))
+        cur.execute(
+            f"INSERT INTO otp_store(token, otp, created, attempts, verified) "
+            f"VALUES({p},{p},{p},0,0) "
+            + ("ON CONFLICT(token) DO UPDATE SET otp=EXCLUDED.otp, created=EXCLUDED.created, attempts=0, verified=0"
+               if DATABASE_URL else
+               "ON CONFLICT(token) DO UPDATE SET otp=excluded.otp, created=excluded.created, attempts=0, verified=0"),
+            (token, otp, time.time())
+        )
         conn.commit()
         conn.close()
 
-        # Only tiny token in session cookie
         session["otp_token"]     = token
         session["otp_sends"]     = sends + 1
         session["otp_last_send"] = time.time()
         session.modified         = True
 
-        delivered = False
-        if method == "email":
+        # Send email
+        try:
+            _send_email_otp(email, otp)
+            logging.info(f"OTP sent to {_mask_email(email)}")
+            return jsonify({"status": "sent", "message": f"OTP sent to {_mask_email(email)}"})
+        except Exception as e:
+            logging.error(f"Email OTP failed: {e}")
+            # Clean up token on failure
             try:
-                _send_email_otp(email, otp)
-                delivered = True
-                return jsonify({"status": "sent", "message": "OTP sent to " + _mask_email(email)})
-            except Exception as e:
-                logging.warning("Email OTP failed: " + str(e))
-                # Delete token and return clear error
-                conn = get_db()
-                conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
-                conn.commit(); conn.close()
-                session.pop("otp_token", None)
-                session.modified = True
-                return jsonify({"status": "error", "message": "Failed to send OTP: " + str(e)})
-        else:
-            # SMS selected — try SMS first, then auto-fallback to email via Resend
-            sms_ok = False
-            try:
-                _send_sms_otp(phone, otp)
-                sms_ok = True
-                return jsonify({"status": "sent", "message": "OTP sent via SMS to ***" + phone[-3:]})
-            except Exception as e:
-                logging.warning("SMS OTP failed: " + str(e))
-
-            if not sms_ok and email:
-                try:
-                    _send_email_otp(email, otp)
-                    return jsonify({"status": "sent", "fallback": True,
-                                    "message": "SMS unavailable. OTP sent to " + _mask_email(email)})
-                except Exception as e2:
-                    logging.warning("Email fallback failed: " + str(e2))
-                    conn = get_db()
-                    conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
-                    conn.commit(); conn.close()
-                    session.pop("otp_token", None)
-                    session.modified = True
-                    return jsonify({"status": "error",
-                                    "message": "SMS failed and email fallback also failed. Please select Email OTP manually."})
-
-            conn = get_db()
-            conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
-            conn.commit(); conn.close()
+                conn2 = get_db()
+                cur2  = conn2.cursor()
+                cur2.execute(f"DELETE FROM otp_store WHERE token={ph()}", (token,))
+                conn2.commit()
+                conn2.close()
+            except Exception:
+                pass
             session.pop("otp_token", None)
             session.modified = True
-            return jsonify({"status": "error",
-                            "message": "SMS failed. Please enter your email and select Email OTP."})
+            return jsonify({"status": "error", "message": f"Failed to send OTP email: {str(e)}"})
 
     except Exception as ex:
-        logging.error("send_otp crash: " + str(ex))
-        return jsonify({"status": "error", "message": "Server error. Please refresh and try again."})
+        logging.error(f"send_otp crash: {ex}")
+        return jsonify({"status": "error", "message": f"Server error: {str(ex)}"})
+
 
 @app.route("/verify-otp", methods=["POST"])
 def verify_otp():
@@ -480,40 +457,49 @@ def verify_otp():
 
         if not token:
             return jsonify({"status": "error", "message": "Session expired. Please request a new OTP."})
+        if not otp_in or len(otp_in) != 6:
+            return jsonify({"status": "error", "message": "Enter the 6-digit OTP."})
 
+        p    = ph()
         conn = get_db()
-        row  = conn.execute("SELECT otp, created, attempts FROM otp_store WHERE token=? AND verified=0",
-                            (token,)).fetchone()
+        cur  = conn.cursor()
+        cur.execute(
+            f"SELECT otp, created, attempts FROM otp_store WHERE token={p} AND verified=0",
+            (token,)
+        )
+        row = db_fetchone(cur)
+
         if not row:
             conn.close()
-            return jsonify({"status": "error", "message": "OTP not found. Please request a new one."})
+            return jsonify({"status": "error", "message": "OTP not found or already used. Request a new one."})
 
         attempts = row["attempts"]
+
         if attempts >= 5:
-            conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+            cur.execute(f"DELETE FROM otp_store WHERE token={p}", (token,))
             conn.commit(); conn.close()
             return jsonify({"status": "error", "message": "Too many wrong attempts. Request a new OTP."})
 
-        if time.time() - row["created"] > 300:
-            conn.execute("DELETE FROM otp_store WHERE token=?", (token,))
+        if time.time() - float(row["created"]) > 300:
+            cur.execute(f"DELETE FROM otp_store WHERE token={p}", (token,))
             conn.commit(); conn.close()
             return jsonify({"status": "error", "message": "OTP expired. Please request a new one."})
 
-        if otp_in != row["otp"]:
-            conn.execute("UPDATE otp_store SET attempts=? WHERE token=?", (attempts + 1, token))
+        if otp_in != str(row["otp"]):
+            cur.execute(f"UPDATE otp_store SET attempts={p} WHERE token={p}", (attempts + 1, token))
             conn.commit(); conn.close()
             left = 4 - attempts
             return jsonify({"status": "error", "message": f"Incorrect OTP. {left} attempt(s) left."})
 
-        conn.execute("UPDATE otp_store SET verified=1 WHERE token=?", (token,))
+        cur.execute(f"UPDATE otp_store SET verified=1 WHERE token={p}", (token,))
         conn.commit(); conn.close()
         session["otp_verified"] = True
         session.modified = True
         return jsonify({"status": "verified", "message": "OTP verified successfully."})
 
     except Exception as ex:
-        logging.error("verify_otp error: " + str(ex))
-        return jsonify({"status": "error", "message": "Verification error. Please try again."})
+        logging.error(f"verify_otp error: {ex}")
+        return jsonify({"status": "error", "message": f"Verification error: {str(ex)}"})
 
 @app.route("/register", methods=["POST"])
 def register_user():

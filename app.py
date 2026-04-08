@@ -179,7 +179,11 @@ def log_activity(action, detail="", user_email=None):
     except Exception as e:
         logging.warning(f"log_activity failed: {e}")
 
-init_db()
+try:
+    init_db()
+    logging.info("Database initialized successfully.")
+except Exception as _init_err:
+    logging.error(f"init_db failed (non-fatal): {_init_err}")
 
 # ── AI ───────────────────────────────────────────────────────────────────────
 CRIME_RULES = [
@@ -615,28 +619,36 @@ def about():
 
 @app.route("/test-email")
 def test_email():
-    """Debug route — remove after fixing OTP. Visit /test-email to test Gmail SMTP."""
+    """Debug route — shows env vars, Gmail test, DB test."""
     import smtplib, ssl as _ssl
-    user = os.environ.get("SMTP_USER","NOT_SET")
-    pwd  = os.environ.get("SMTP_PASS","NOT_SET")
-    resend = os.environ.get("RESEND_KEY","NOT_SET")
+    user   = os.environ.get("SMTP_USER","NOT_SET")
+    pwd    = os.environ.get("SMTP_PASS","NOT_SET")
+    db_url = "SET" if os.environ.get("DATABASE_URL","") else "NOT_SET"
     result = {
         "SMTP_USER": user,
         "SMTP_PASS_SET": "YES" if pwd != "NOT_SET" else "NO",
-        "RESEND_KEY_SET": "YES" if resend != "NOT_SET" else "NO",
+        "DATABASE_URL": db_url,
     }
-    if user == "NOT_SET" or pwd == "NOT_SET":
+    if user != "NOT_SET" and pwd != "NOT_SET":
+        try:
+            ctx = _ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = _ssl.CERT_NONE
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as srv:
+                srv.login(user, pwd)
+                result["smtp_test"] = "LOGIN OK"
+        except Exception as e:
+            result["smtp_test"] = f"FAILED: {e}"
+    else:
         result["smtp_test"] = "SKIPPED — env vars missing"
-        return jsonify(result)
     try:
-        ctx = _ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = _ssl.CERT_NONE
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as srv:
-            srv.login(user, pwd)
-            result["smtp_test"] = "LOGIN OK — Gmail SMTP works"
+        conn = get_db()
+        cur  = conn.cursor()
+        cur.execute("SELECT 1")
+        conn.close()
+        result["db_test"] = "DB OK"
     except Exception as e:
-        result["smtp_test"] = f"FAILED: {e}"
+        result["db_test"] = f"DB FAILED: {e}"
     return jsonify(result)
 
 @app.route("/alerts")

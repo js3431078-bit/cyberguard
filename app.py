@@ -514,46 +514,6 @@ def verify_otp():
     except Exception as ex:
         logging.error("verify_otp error: " + str(ex))
         return jsonify({"status": "error", "message": "Verification error. Please try again."})
-        session["otp_attempts"]  = 0
-        session["otp_sends"]     = sends + 1
-        session["otp_last_send"] = time.time()
-        session.modified         = True
-
-        if method == "email":
-            try:
-                _send_email_otp(email, otp)
-                return jsonify({"status": "sent", "message": "OTP sent to " + _mask_email(email)})
-            except Exception as e:
-                logging.warning("Email OTP failed: " + str(e))
-        else:
-            try:
-                _send_sms_otp(phone, otp)
-                return jsonify({"status": "sent", "message": "OTP sent via SMS to ***" + phone[-3:]})
-            except Exception as e:
-                logging.warning("SMS OTP failed: " + str(e))
-                if email:
-                    try:
-                        _send_email_otp(email, otp)
-                        return jsonify({"status": "sent", "fallback": True,
-                                        "message": "SMS unavailable. OTP sent to " + _mask_email(email)})
-                    except Exception as e2:
-                        logging.warning("Email fallback failed: " + str(e2))
-
-        return jsonify({"status": "sent", "dev_otp": otp,
-                        "message": "OTP delivery unavailable. Your OTP is auto-filled below."})
-
-    except Exception as ex:
-        logging.error("send_otp crash: " + str(ex))
-        try:
-            otp = str(random.randint(100000, 999999))
-            session["otp"] = otp
-            session["otp_time"] = time.time()
-            session["otp_attempts"] = 0
-            session.modified = True
-            return jsonify({"status": "sent", "dev_otp": otp,
-                            "message": "OTP generated. Enter it below to continue."})
-        except Exception:
-            return jsonify({"status": "error", "message": "Session error. Please refresh and try again."})
 
 @app.route("/register", methods=["POST"])
 def register_user():

@@ -1,6 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from langdetect import detect
-import sqlite3, os, logging
+import os, logging
 from werkzeug.utils import secure_filename
 
 # Load .env if present
@@ -22,66 +22,143 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 ADMIN_ID       = "admin"
 ADMIN_PASSWORD = "admin123"
 
-# ── DB ──────────────────────────────────────────────────────────────────────
+# ── DB — PostgreSQL (Supabase) with SQLite fallback ──────────────────────────
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
+
 def get_db():
-    conn = sqlite3.connect("cybercrime.db")
-    conn.row_factory = sqlite3.Row
-    return conn
+    if DATABASE_URL:
+        import psycopg2
+        import psycopg2.extras
+        conn = psycopg2.connect(DATABASE_URL, sslmode="require")
+        conn.autocommit = False
+        return conn
+    else:
+        import sqlite3
+        conn = sqlite3.connect("cybercrime.db")
+        conn.row_factory = sqlite3.Row
+        return conn
+
+def db_fetchall(cursor):
+    """Convert psycopg2 rows to list of dicts."""
+    if DATABASE_URL:
+        cols = [d[0] for d in cursor.description]
+        return [dict(zip(cols, row)) for row in cursor.fetchall()]
+    else:
+        return [dict(row) for row in cursor.fetchall()]
+
+def db_fetchone(cursor):
+    """Convert psycopg2 row to dict."""
+    if DATABASE_URL:
+        row = cursor.fetchone()
+        if row is None: return None
+        cols = [d[0] for d in cursor.description]
+        return dict(zip(cols, row))
+    else:
+        row = cursor.fetchone()
+        return dict(row) if row else None
+
+def ph(n=1):
+    """Return placeholder — %s for postgres, ? for sqlite."""
+    return "%s" if DATABASE_URL else "?"
+
+def phs(n):
+    """Return n placeholders."""
+    p = "%s" if DATABASE_URL else "?"
+    return ",".join([p]*n)
 
 def init_db():
     conn = get_db()
-    conn.executescript("""
-    CREATE TABLE IF NOT EXISTS users(
-        id       INTEGER PRIMARY KEY AUTOINCREMENT,
-        name     TEXT NOT NULL,
-        email    TEXT UNIQUE NOT NULL,
-        phone    TEXT,
-        password TEXT NOT NULL,
-        created  TEXT DEFAULT (datetime('now','localtime'))
-    );
-    CREATE TABLE IF NOT EXISTS otp_store(
-        id        INTEGER PRIMARY KEY AUTOINCREMENT,
-        token     TEXT UNIQUE NOT NULL,
-        otp       TEXT NOT NULL,
-        created   REAL NOT NULL,
-        attempts  INTEGER DEFAULT 0,
-        verified  INTEGER DEFAULT 0
-    );
-    CREATE TABLE IF NOT EXISTS complaints(
-        id          INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_email  TEXT,
-        name        TEXT,
-        email       TEXT,
-        phone       TEXT,
-        address     TEXT,
-        crime_type  TEXT,
-        description TEXT,
-        file        TEXT,
-        date        TEXT,
-        status      TEXT DEFAULT 'Pending',
-        submitted   TEXT DEFAULT (datetime('now','localtime'))
-    );
-    CREATE TABLE IF NOT EXISTS activity_logs(
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_email TEXT,
-        action     TEXT NOT NULL,
-        detail     TEXT,
-        ip         TEXT,
-        timestamp  TEXT DEFAULT (datetime('now','localtime'))
-    );
-    CREATE TABLE IF NOT EXISTS ai_analysis_logs(
-        id         INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_email TEXT,
-        input_text TEXT,
-        crime      TEXT,
-        category   TEXT,
-        threat     TEXT,
-        confidence TEXT,
-        language   TEXT,
-        source     TEXT DEFAULT 'analyze',
-        timestamp  TEXT DEFAULT (datetime('now','localtime'))
-    );
-    """)
+    cur  = conn.cursor()
+    if DATABASE_URL:
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS users(
+            id       SERIAL PRIMARY KEY,
+            name     TEXT NOT NULL,
+            email    TEXT UNIQUE NOT NULL,
+            phone    TEXT,
+            password TEXT NOT NULL,
+            created  TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+        )""")
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS otp_store(
+            id        SERIAL PRIMARY KEY,
+            token     TEXT UNIQUE NOT NULL,
+            otp       TEXT NOT NULL,
+            created   DOUBLE PRECISION NOT NULL,
+            attempts  INTEGER DEFAULT 0,
+            verified  INTEGER DEFAULT 0
+        )""")
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS complaints(
+            id          SERIAL PRIMARY KEY,
+            user_email  TEXT,
+            name        TEXT,
+            email       TEXT,
+            phone       TEXT,
+            address     TEXT,
+            crime_type  TEXT,
+            description TEXT,
+            file        TEXT,
+            date        TEXT,
+            status      TEXT DEFAULT 'Pending',
+            submitted   TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+        )""")
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS activity_logs(
+            id         SERIAL PRIMARY KEY,
+            user_email TEXT,
+            action     TEXT NOT NULL,
+            detail     TEXT,
+            ip         TEXT,
+            timestamp  TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+        )""")
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS ai_analysis_logs(
+            id         SERIAL PRIMARY KEY,
+            user_email TEXT,
+            input_text TEXT,
+            crime      TEXT,
+            category   TEXT,
+            threat     TEXT,
+            confidence TEXT,
+            language   TEXT,
+            source     TEXT DEFAULT 'analyze',
+            timestamp  TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+        )""")
+    else:
+        import sqlite3
+        cur.executescript("""
+        CREATE TABLE IF NOT EXISTS users(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL, email TEXT UNIQUE NOT NULL,
+            phone TEXT, password TEXT NOT NULL,
+            created TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS otp_store(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            token TEXT UNIQUE NOT NULL, otp TEXT NOT NULL,
+            created REAL NOT NULL, attempts INTEGER DEFAULT 0, verified INTEGER DEFAULT 0
+        );
+        CREATE TABLE IF NOT EXISTS complaints(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, name TEXT, email TEXT, phone TEXT, address TEXT,
+            crime_type TEXT, description TEXT, file TEXT, date TEXT,
+            status TEXT DEFAULT 'Pending',
+            submitted TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS activity_logs(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, action TEXT NOT NULL, detail TEXT, ip TEXT,
+            timestamp TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS ai_analysis_logs(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, input_text TEXT, crime TEXT, category TEXT,
+            threat TEXT, confidence TEXT, language TEXT,
+            source TEXT DEFAULT 'analyze',
+            timestamp TEXT DEFAULT (datetime('now','localtime'))
+        );
+        """)
     conn.commit()
     conn.close()
 
@@ -249,31 +326,30 @@ def _mask_email(email):
         return "***"
 
 def _send_email_otp(to_email, otp):
-    """Send OTP via Resend HTTP API — works on Railway free tier (HTTPS only)."""
-    resend_key = os.environ.get("RESEND_KEY", "").strip()
-    if not resend_key:
-        raise ValueError("RESEND_KEY not configured in environment variables.")
+    """Send OTP via Gmail SMTP using app password."""
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.environ.get("SMTP_PORT", "587"))
+    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    smtp_pass = os.environ.get("SMTP_PASS", "").strip()
 
-    resp = _requests.post(
-        "https://api.resend.com/emails",
-        headers={
-            "Authorization": f"Bearer {resend_key}",
-            "Content-Type": "application/json"
-        },
-        json={
-            "from":    "CyberGuard Portal <onboarding@resend.dev>",
-            "to":      [to_email],
-            "subject": "CyberGuard — Email Verification OTP",
-            "text":    (
-                f"Your CyberGuard registration OTP is: {otp}\n\n"
-                f"Valid for 5 minutes. Do not share this with anyone.\n\n"
-                f"— CyberGuard Security Team"
-            )
-        },
-        timeout=10
+    if not smtp_user or not smtp_pass:
+        raise ValueError("SMTP_USER and SMTP_PASS must be set in environment variables.")
+
+    msg = MIMEText(
+        f"Your CyberGuard registration OTP is: {otp}\n\n"
+        f"Valid for 5 minutes. Do not share this with anyone.\n\n"
+        f"— CyberGuard Security Team",
+        "plain"
     )
-    if resp.status_code not in (200, 201):
-        raise ValueError(f"Resend error {resp.status_code}: {resp.text[:200]}")
+    msg["Subject"] = "CyberGuard — Email Verification OTP"
+    msg["From"]    = f"CyberGuard Portal <{smtp_user}>"
+    msg["To"]      = to_email
+
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(smtp_user, smtp_pass)
+        server.send_message(msg)
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY", "").strip()
@@ -473,10 +549,7 @@ def register_user():
         return jsonify({"status":"error","message":"All fields are required."})
     if not session.get("captcha_verified"):
         return jsonify({"status":"error","message":"CAPTCHA not verified."})
-    if not session.get("otp_verified"):
-        return jsonify({"status":"error","message":"OTP not verified."})
     session.pop("captcha_verified", None)
-    session.pop("otp_verified", None)
     conn = get_db()
     try:
         conn.execute("INSERT INTO users(name,email,phone,password) VALUES(?,?,?,?)",(name,email,phone,password))
@@ -1067,66 +1140,86 @@ CHAT_KB = [
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    msg = request.json.get("message", "").strip()
-    if not msg:
-        return jsonify({"reply": "Please type a message."})
+    try:
+        msg = (request.json or {}).get("message", "").strip()
+        if not msg:
+            return jsonify({"reply": "Please type a message."})
 
-    hindi = False
+        log_activity("chatbot", f"Q: {msg[:100]}")
 
-    log_activity("chatbot", f"Q: {msg[:100]}")
+        SYSTEM = (
+            "You are CyberBot, a friendly and intelligent AI assistant for India's Student Cybercrime Portal. "
+            "You can answer questions about cybercrime, cyber safety, online fraud, hacking, phishing, "
+            "cyberbullying, identity theft, ransomware, UPI fraud, and related topics. "
+            "If someone sends unclear, random, or gibberish text, ask them politely to clarify what they need help with. "
+            "If someone greets you, respond warmly and ask how you can help. "
+            "If the question is completely unrelated to cybercrime or safety, politely say you specialize in cybercrime "
+            "and ask if they have a cyber safety question. "
+            "For cybercrime questions: give a clear explanation, numbered action steps, and relevant Indian helplines "
+            "(1930 for cyber crime, 1091 for women, 100 for police). Direct users to cybercrime.gov.in for complaints. "
+            "Support both English and Hindi/Hinglish — respond in the same language the user writes in. "
+            "Keep responses under 200 words. Be conversational, warm and helpful like a real assistant."
+        )
 
-    SYSTEM = (
-        "You are CyberBot, an expert AI assistant for India's Student Cybercrime Portal. "
-        "You ONLY answer questions related to cybercrime, cyber safety, online fraud, hacking, "
-        "phishing, cyberbullying, identity theft, ransomware, UPI fraud, and related topics. "
-        "For every response: give a clear explanation, numbered action steps, and end with "
-        "relevant Indian helplines (1930 for cyber crime, 1091 for women, 100 for police). "
-        "Direct users to cybercrime.gov.in for complaints. "
-        "If the question is unrelated to cybercrime, politely refuse and redirect. "
-        "Respond only in English regardless of the language the user writes in. "
-        "Keep responses under 250 words. Be conversational, empathetic and actionable."
-    )
-
-    # ── Try Groq first (llama-3.1-8b-instant — confirmed working) ─────────
-    groq_key = os.environ.get("GROQ_API_KEY", "")
-    if groq_key and not groq_key.startswith("your_"):
-        try:
-            from groq import Groq
-            client = Groq(api_key=groq_key)
-            completion = client.chat.completions.create(
-                model="llama-3.1-8b-instant",
-                messages=[
-                    {"role": "system", "content": SYSTEM},
-                    {"role": "user",   "content": msg}
-                ],
-                max_tokens=400, temperature=0.75,
-            )
-            reply = completion.choices[0].message.content.strip()
-            _log_ai(msg, reply, hindi)
-            return jsonify({"reply": reply})
-        except Exception as e:
-            logging.warning(f"Groq error: {e}")
-
-    # ── Try Gemini as backup ───────────────────────────────────────────────
-    gemini_key = os.environ.get("GEMINI_API_KEY", "")
-    if gemini_key and not gemini_key.startswith("your_"):
-        for gmodel in ["gemini-2.0-flash-lite", "gemini-2.0-flash"]:
+        # Try Groq (llama-3.3-70b-versatile — best model)
+        groq_key = os.environ.get("GROQ_API_KEY", "")
+        if groq_key:
             try:
-                from google import genai as google_genai
-                gclient = google_genai.Client(api_key=gemini_key)
-                response = gclient.models.generate_content(
-                    model=gmodel,
-                    contents=f"{SYSTEM}\n\nUser: {msg}"
+                from groq import Groq
+                client = Groq(api_key=groq_key)
+                completion = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[
+                        {"role": "system", "content": SYSTEM},
+                        {"role": "user",   "content": msg}
+                    ],
+                    max_tokens=350, temperature=0.8,
                 )
-                reply = response.text.strip()
-                _log_ai(msg, reply, hindi)
+                reply = completion.choices[0].message.content.strip()
+                _log_ai(msg, reply)
                 return jsonify({"reply": reply})
             except Exception as e:
-                logging.warning(f"Gemini {gmodel} error: {e}")
-                continue
+                logging.warning(f"Groq llama-3.3 error: {e}")
+                # Try fallback model
+                try:
+                    completion = client.chat.completions.create(
+                        model="llama-3.1-8b-instant",
+                        messages=[
+                            {"role": "system", "content": SYSTEM},
+                            {"role": "user",   "content": msg}
+                        ],
+                        max_tokens=350, temperature=0.8,
+                    )
+                    reply = completion.choices[0].message.content.strip()
+                    _log_ai(msg, reply)
+                    return jsonify({"reply": reply})
+                except Exception as e2:
+                    logging.warning(f"Groq fallback error: {e2}")
 
-    # ── Smart rule-based fallback (always works, no API needed) ───────────
-    return _smart_reply(msg, hindi)
+        # Try Gemini as backup
+        gemini_key = os.environ.get("GEMINI_API_KEY", "")
+        if gemini_key:
+            for gmodel in ["gemini-2.0-flash-lite", "gemini-2.0-flash"]:
+                try:
+                    from google import genai as google_genai
+                    gclient = google_genai.Client(api_key=gemini_key)
+                    response = gclient.models.generate_content(
+                        model=gmodel,
+                        contents=f"{SYSTEM}\n\nUser: {msg}"
+                    )
+                    reply = response.text.strip()
+                    _log_ai(msg, reply)
+                    return jsonify({"reply": reply})
+                except Exception as e:
+                    logging.warning(f"Gemini {gmodel} error: {e}")
+                    continue
+
+        # Smart rule-based fallback
+        return _smart_reply(msg, False)
+
+    except Exception as ex:
+        logging.error(f"chat route error: {ex}")
+        return jsonify({"reply": "Sorry, I'm having trouble right now. Please try again in a moment."})
 
 
 def _send_complaint_email(complaint_id, name, email, crime_type, description, date):

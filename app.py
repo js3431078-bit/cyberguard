@@ -150,6 +150,15 @@ def init_db():
             source     TEXT DEFAULT 'analyze',
             timestamp  TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
         )""")
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS feedback(
+            id           SERIAL PRIMARY KEY,
+            user_email   TEXT,
+            complaint_id TEXT,
+            rating       INTEGER NOT NULL,
+            comment      TEXT,
+            timestamp    TEXT DEFAULT to_char(now(),'YYYY-MM-DD HH24:MI:SS')
+        )""")
     else:
         cur.executescript("""
         CREATE TABLE IF NOT EXISTS users(
@@ -180,6 +189,12 @@ def init_db():
             user_email TEXT, input_text TEXT, crime TEXT, category TEXT,
             threat TEXT, confidence TEXT, language TEXT,
             source TEXT DEFAULT 'analyze',
+            timestamp TEXT DEFAULT (datetime('now','localtime'))
+        );
+        CREATE TABLE IF NOT EXISTS feedback(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_email TEXT, complaint_id TEXT,
+            rating INTEGER NOT NULL, comment TEXT,
             timestamp TEXT DEFAULT (datetime('now','localtime'))
         );
         """)
@@ -909,6 +924,32 @@ def dashboard():
         total=total, pending=pending, resolved=resolved,
         trend_labels=trend_labels, trend_data=trend_data,
         role=session.get("role"), username=session.get("name"))
+
+@app.route("/submit_feedback", methods=["POST"])
+def submit_feedback():
+    if "email" not in session:
+        return jsonify({"status": "error", "message": "Not logged in."})
+    try:
+        d = request.json or {}
+        rating       = int(d.get("rating", 0))
+        comment      = d.get("comment", "").strip()
+        complaint_id = d.get("complaint_id", "").strip()
+        if not 1 <= rating <= 5:
+            return jsonify({"status": "error", "message": "Rating must be 1-5."})
+        conn = get_db()
+        p    = ph_for(conn)
+        cur  = conn.cursor()
+        cur.execute(
+            f"INSERT INTO feedback(user_email, complaint_id, rating, comment) VALUES({p},{p},{p},{p})",
+            (session["email"], complaint_id, rating, comment)
+        )
+        conn.commit()
+        conn.close()
+        return jsonify({"status": "success", "message": "Thank you for your feedback!"})
+    except Exception as ex:
+        logging.error(f"submit_feedback error: {ex}")
+        return jsonify({"status": "error", "message": str(ex)})
+
 
 @app.route("/update_status", methods=["POST"])
 def update_status():

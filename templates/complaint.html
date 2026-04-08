@@ -619,12 +619,15 @@ function submitComplaint(e) {
       if (d.complaint_id) {
         document.getElementById("complaintIdText").textContent = d.complaint_id;
         document.getElementById("complaintIdBox").style.display = "block";
+        window._lastComplaintId = d.complaint_id;
       }
       if (d.gov_link) {
         var govBtn = document.getElementById("govLinkBtn");
         if (govBtn) { govBtn.href = d.gov_link; govBtn.style.display = "inline-flex"; }
       }
       document.getElementById("popupOverlay").className = "popup-overlay on";
+      // Show feedback popup after 2 seconds
+      setTimeout(function(){ document.getElementById("feedbackModal").style.display = "flex"; }, 2000);
     } else {
       alert(d.message || "Submission failed.");
       btn.innerHTML = "🚀 Submit Complaint";
@@ -637,7 +640,58 @@ function submitComplaint(e) {
     btn.disabled = false;
   });
 }
+
+// ── Feedback ──────────────────────────────────────────────────────────────────
+var _selectedRating = 0;
+function setRating(n) {
+  _selectedRating = n;
+  for (var i = 1; i <= 5; i++) {
+    var s = document.getElementById("star" + i);
+    if (s) s.style.color = i <= n ? "#ffd166" : "#cbd5e1";
+  }
+}
+function submitFeedback() {
+  if (!_selectedRating) { alert("Please select a rating."); return; }
+  var comment = document.getElementById("feedbackComment").value.trim();
+  fetch("/submit_feedback", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({rating: _selectedRating, comment: comment, complaint_id: window._lastComplaintId || ""})
+  })
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    document.getElementById("feedbackModal").style.display = "none";
+    if (d.status === "success") alert("✅ Thank you for your feedback!");
+  })
+  .catch(function(){ document.getElementById("feedbackModal").style.display = "none"; });
+}
 </script>
+
+<!-- Feedback Modal -->
+<div id="feedbackModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+  <div style="background:#fff;border-radius:18px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.4);overflow:hidden;">
+    <div style="background:linear-gradient(135deg,#1b3a57,#2563eb);padding:20px 24px;text-align:center;">
+      <div style="font-size:32px;margin-bottom:6px;">⭐</div>
+      <h3 style="color:#fff;font-size:17px;font-weight:800;margin:0;">Rate Your Experience</h3>
+      <p style="color:rgba(255,255,255,.75);font-size:12px;margin:4px 0 0;">How was your complaint submission experience?</p>
+    </div>
+    <div style="padding:24px;">
+      <div style="display:flex;justify-content:center;gap:12px;margin-bottom:16px;">
+        <span id="star1" onclick="setRating(1)" style="font-size:36px;cursor:pointer;color:#cbd5e1;transition:color .2s;">★</span>
+        <span id="star2" onclick="setRating(2)" style="font-size:36px;cursor:pointer;color:#cbd5e1;transition:color .2s;">★</span>
+        <span id="star3" onclick="setRating(3)" style="font-size:36px;cursor:pointer;color:#cbd5e1;transition:color .2s;">★</span>
+        <span id="star4" onclick="setRating(4)" style="font-size:36px;cursor:pointer;color:#cbd5e1;transition:color .2s;">★</span>
+        <span id="star5" onclick="setRating(5)" style="font-size:36px;cursor:pointer;color:#cbd5e1;transition:color .2s;">★</span>
+      </div>
+      <textarea id="feedbackComment" placeholder="Any comments? (optional)" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;font-family:inherit;resize:none;height:80px;outline:none;"></textarea>
+      <div style="display:flex;gap:10px;margin-top:14px;">
+        <button onclick="document.getElementById('feedbackModal').style.display='none'" style="flex:1;padding:11px;background:#f1f5f9;border:none;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;color:#64748b;">Skip</button>
+        <button onclick="submitFeedback()" style="flex:2;padding:11px;background:linear-gradient(135deg,#e63946,#c1121f);color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;">Submit Feedback</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {

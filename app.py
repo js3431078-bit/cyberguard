@@ -388,44 +388,91 @@ def _mask_email(email):
         return "***"
 
 def _send_email_otp(to_email, otp):
-    """Send OTP via Gmail SMTP SSL (port 465) — works on Railway free tier."""
+    """Send OTP via Gmail using Google's SMTP over HTTP fallback chain:
+    1. Try port 587 (STARTTLS)
+    2. Try port 465 (SSL)
+    3. Try Mailgun free API if configured
+    """
     import ssl as _ssl
 
     gmail_user = os.environ.get("SMTP_USER", "").strip()
     gmail_pass = os.environ.get("SMTP_PASS", "").strip()
 
-    if not gmail_user or not gmail_pass:
-        raise ValueError("SMTP_USER / SMTP_PASS not set in environment.")
-
+    subject = "CyberGuard — Email Verification OTP"
     body = (
         f"Hello,\n\n"
-        f"Your CyberGuard OTP is:  {otp}\n\n"
+        f"Your CyberGuard OTP is: {otp}\n\n"
         f"Valid for 5 minutes. Do not share it with anyone.\n\n"
         f"— CyberGuard Security Team"
     )
-    msg = MIMEText(body, "plain")
-    msg["Subject"] = "CyberGuard — Email Verification OTP"
-    msg["From"]    = f"CyberGuard Portal <{gmail_user}>"
-    msg["To"]      = to_email
 
-    # Try strict SSL first (works on Railway/Linux), fall back to relaxed (Windows dev)
-    for verify in (True, False):
+    errors = []
+
+    # ── Try port 587 STARTTLS ──────────────────────────────────────────────
+    if gmail_user and gmail_pass:
         try:
-            ctx = _ssl.create_default_context()
-            if not verify:
-                ctx.check_hostname = False
-                ctx.verify_mode    = _ssl.CERT_NONE
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx) as srv:
+            import smtplib
+            from email.mime.text import MIMEText as _MIMEText
+            msg = _MIMEText(body, "plain")
+            msg["Subject"] = subject
+            msg["From"]    = f"CyberGuard <{gmail_user}>"
+            msg["To"]      = to_email
+            with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as srv:
+                srv.ehlo()
+                srv.starttls()
                 srv.login(gmail_user, gmail_pass)
                 srv.send_message(msg)
-            logging.info(f"OTP sent via Gmail SSL to {_mask_email(to_email)}")
+            logging.info(f"OTP sent via Gmail 587 to {_mask_email(to_email)}")
             return
-        except _ssl.SSLError:
-            if verify:
-                continue   # retry with relaxed SSL
-            raise
-        except Exception:
-            raise
+        except Exception as e:
+            errors.append(f"587: {e}")
+            logging.warning(f"Gmail 587 failed: {e}")
+
+    # ── Try port 465 SSL ───────────────────────────────────────────────────
+    if gmail_user and gmail_pass:
+        try:
+            import smtplib
+            from email.mime.text import MIMEText as _MIMEText
+            msg = _MIMEText(body, "plain")
+            msg["Subject"] = subject
+            msg["From"]    = f"CyberGuard <{gmail_user}>"
+            msg["To"]      = to_email
+            ctx = _ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = _ssl.CERT_NONE
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx, timeout=15) as srv:
+                srv.login(gmail_user, gmail_pass)
+                srv.send_message(msg)
+            logging.info(f"OTP sent via Gmail 465 to {_mask_email(to_email)}")
+            return
+        except Exception as e:
+            errors.append(f"465: {e}")
+            logging.warning(f"Gmail 465 failed: {e}")
+
+    # ── Try Mailgun free HTTP API ──────────────────────────────────────────
+    mg_key    = os.environ.get("MAILGUN_KEY", "").strip()
+    mg_domain = os.environ.get("MAILGUN_DOMAIN", "").strip()
+    if mg_key and mg_domain:
+        try:
+            resp = _requests.post(
+                f"https://api.mailgun.net/v3/{mg_domain}/messages",
+                auth=("api", mg_key),
+                data={
+                    "from":    f"CyberGuard <mailgun@{mg_domain}>",
+                    "to":      to_email,
+                    "subject": subject,
+                    "text":    body
+                },
+                timeout=10
+            )
+            if resp.status_code in (200, 201):
+                logging.info(f"OTP sent via Mailgun to {_mask_email(to_email)}")
+                return
+            errors.append(f"Mailgun {resp.status_code}: {resp.text[:100]}")
+        except Exception as e:
+            errors.append(f"Mailgun: {e}")
+
+    raise ValueError(f"All email methods failed: {' | '.join(errors)}")
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY", "").strip()

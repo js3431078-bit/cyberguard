@@ -43,26 +43,27 @@ def get_db():
     return conn
 
 def db_fetchall(cursor):
-    """Convert psycopg2 rows to list of dicts."""
-    if DATABASE_URL:
+    """Convert rows to list of dicts — works for both psycopg2 and sqlite3."""
+    try:
         cols = [d[0] for d in cursor.description]
         return [dict(zip(cols, row)) for row in cursor.fetchall()]
-    else:
+    except Exception:
         return [dict(row) for row in cursor.fetchall()]
 
 def db_fetchone(cursor):
-    """Convert psycopg2 row to dict."""
-    if DATABASE_URL:
+    """Convert row to dict — works for both psycopg2 and sqlite3."""
+    try:
         row = cursor.fetchone()
-        if row is None: return None
+        if row is None:
+            return None
         cols = [d[0] for d in cursor.description]
         return dict(zip(cols, row))
-    else:
-        row = cursor.fetchone()
+    except Exception:
+        row = cursor.fetchone() if not hasattr(cursor, '_fetched') else None
         return dict(row) if row else None
 
 def _is_pg(conn):
-    """Check if connection is PostgreSQL."""
+    """Check if this connection is PostgreSQL."""
     try:
         import psycopg2
         return isinstance(conn, psycopg2.extensions.connection)
@@ -70,11 +71,14 @@ def _is_pg(conn):
         return False
 
 def ph(n=1):
-    """Return placeholder — %s for postgres, ? for sqlite."""
+    """Return correct placeholder based on actual DB connection."""
     return "%s" if DATABASE_URL else "?"
 
+def ph_for(conn):
+    """Return correct placeholder for a specific connection object."""
+    return "%s" if _is_pg(conn) else "?"
+
 def phs(n):
-    """Return n placeholders."""
     p = "%s" if DATABASE_URL else "?"
     return ",".join([p]*n)
 
@@ -179,8 +183,8 @@ def log_activity(action, detail="", user_email=None):
     try:
         email = user_email or session.get("email", "anonymous")
         ip    = request.remote_addr or "unknown"
-        p     = ph()
         conn  = get_db()
+        p     = ph_for(conn)
         cur   = conn.cursor()
         cur.execute(
             f"INSERT INTO activity_logs(user_email, action, detail, ip) VALUES({p},{p},{p},{p})",
@@ -421,15 +425,15 @@ def send_otp():
         token = _secrets.token_hex(16)
 
         # Store OTP in DB with correct placeholders for both SQLite and PostgreSQL
-        p = ph()
         conn = get_db()
+        p    = ph_for(conn)
         cur  = conn.cursor()
         cur.execute(f"DELETE FROM otp_store WHERE created < {p}", (time.time() - 600,))
         cur.execute(
             f"INSERT INTO otp_store(token, otp, created, attempts, verified) "
             f"VALUES({p},{p},{p},0,0) "
             + ("ON CONFLICT(token) DO UPDATE SET otp=EXCLUDED.otp, created=EXCLUDED.created, attempts=0, verified=0"
-               if DATABASE_URL else
+               if _is_pg(conn) else
                "ON CONFLICT(token) DO UPDATE SET otp=excluded.otp, created=excluded.created, attempts=0, verified=0"),
             (token, otp, time.time())
         )
@@ -452,7 +456,7 @@ def send_otp():
             try:
                 conn2 = get_db()
                 cur2  = conn2.cursor()
-                cur2.execute(f"DELETE FROM otp_store WHERE token={ph()}", (token,))
+                cur2.execute(f"DELETE FROM otp_store WHERE token={ph_for(conn2)}", (token,))
                 conn2.commit()
                 conn2.close()
             except Exception:
@@ -478,8 +482,8 @@ def verify_otp():
         if not otp_in or len(otp_in) != 6:
             return jsonify({"status": "error", "message": "Enter the 6-digit OTP."})
 
-        p    = ph()
         conn = get_db()
+        p    = ph_for(conn)
         cur  = conn.cursor()
         cur.execute(
             f"SELECT otp, created, attempts FROM otp_store WHERE token={p} AND verified=0",
@@ -535,8 +539,8 @@ def register_user():
     session.pop("captcha_verified", None)
     session.pop("otp_verified", None)
     session.pop("otp_token", None)
-    p = ph()
     conn = get_db()
+    p    = ph_for(conn)
     cur  = conn.cursor()
     try:
         cur.execute(
@@ -565,8 +569,8 @@ def reset_password():
     d        = request.json or {}
     email    = d.get("email","").strip()
     new_pass = d.get("new_password","")
-    p    = ph()
     conn = get_db()
+    p    = ph_for(conn)
     cur  = conn.cursor()
     cur.execute(f"SELECT id FROM users WHERE email={p}", (email,))
     user = db_fetchone(cur)
@@ -593,8 +597,8 @@ def login():
             log_activity("login", "Admin login", user_email="admin")
             return jsonify({"status":"success","role":"admin","message":"Welcome Admin! Redirecting to dashboard..."})
         # User check
-        p    = ph()
         conn = get_db()
+        p    = ph_for(conn)
         cur  = conn.cursor()
         cur.execute(f"SELECT * FROM users WHERE email={p} AND password={p}", (username, password))
         user = db_fetchone(cur)

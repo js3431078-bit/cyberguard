@@ -802,14 +802,19 @@ def submit_complaint():
         conn = get_db()
         p = ph_for(conn)
         cur = conn.cursor()
-        cur.execute(
-            f"INSERT INTO complaints(user_email,name,email,phone,address,crime_type,description,file,date,status) VALUES({p},{p},{p},{p},{p},{p},{p},{p},{p},{p})",
-            (session["email"],name,email,phone,address,crime_type,description,",".join(file_objs),date,"Pending")
-        )
-        if _is_pg(conn):
-            cur.execute("SELECT lastval()")
+        is_pg = _is_pg(conn)
+
+        if is_pg:
+            cur.execute(
+                f"INSERT INTO complaints(user_email,name,email,phone,address,crime_type,description,file,date,status) VALUES({p},{p},{p},{p},{p},{p},{p},{p},{p},{p}) RETURNING id",
+                (session["email"],name,email,phone,address,crime_type,description,",".join(file_objs),date,"Pending")
+            )
             complaint_id = cur.fetchone()[0]
         else:
+            cur.execute(
+                f"INSERT INTO complaints(user_email,name,email,phone,address,crime_type,description,file,date,status) VALUES({p},{p},{p},{p},{p},{p},{p},{p},{p},{p})",
+                (session["email"],name,email,phone,address,crime_type,description,",".join(file_objs),date,"Pending")
+            )
             complaint_id = cur.lastrowid
         conn.commit()
         conn.close()

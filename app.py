@@ -723,6 +723,36 @@ def test_email():
         result["db_test"] = f"DB FAILED: {e}"
     return jsonify(result)
 
+@app.route("/test-chat")
+def test_chat():
+    """Debug route — test Groq and Gemini AI directly."""
+    result = {}
+    groq_key = os.environ.get("GROQ_API_KEY","").strip()
+    gemini_key = os.environ.get("GEMINI_API_KEY","").strip()
+    result["GROQ_KEY_SET"] = "YES" if groq_key else "NO"
+    result["GEMINI_KEY_SET"] = "YES" if gemini_key else "NO"
+    if groq_key:
+        try:
+            from groq import Groq
+            client = Groq(api_key=groq_key)
+            r = client.chat.completions.create(
+                model="llama-3.1-8b-instant",
+                messages=[{"role":"user","content":"say hello in 5 words"}],
+                max_tokens=20
+            )
+            result["groq_test"] = "OK: " + r.choices[0].message.content.strip()
+        except Exception as e:
+            result["groq_test"] = f"FAILED: {e}"
+    if gemini_key:
+        try:
+            from google import genai as _gai
+            gc = _gai.Client(api_key=gemini_key)
+            resp = gc.models.generate_content(model="gemini-2.0-flash-lite", contents="say hello in 5 words")
+            result["gemini_test"] = "OK: " + resp.text.strip()
+        except Exception as e:
+            result["gemini_test"] = f"FAILED: {e}"
+    return jsonify(result)
+
 @app.route("/alerts")
 def alerts():
     if "email" not in session:

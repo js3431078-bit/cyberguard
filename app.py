@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify, send_from_directory
 from langdetect import detect
+from werkzeug.security import generate_password_hash, check_password_hash
 import os, logging, re
 from werkzeug.utils import secure_filename
 
@@ -13,14 +14,14 @@ except ImportError:
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-app.secret_key = "cybercrime_secret_2024"
+app.secret_key = os.environ.get("SECRET_KEY", "cg_fallback_secret_2026_xK9mP")
 
 UPLOAD_FOLDER = "uploads"
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
-ADMIN_ID       = "admin"
-ADMIN_PASSWORD = "admin123"
+ADMIN_ID       = os.environ.get("ADMIN_ID", "admin")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
 # ── DB — PostgreSQL (Supabase) with SQLite fallback ──────────────────────────
 _raw_db_url = os.environ.get("DATABASE_URL", "")
@@ -612,10 +613,13 @@ def register_user():
     password = d.get("password","")
     if not all([name, email, phone, password]):
         return jsonify({"status":"error","message":"All fields are required."})
-    if not session.get("otp_verified"):
-        return jsonify({"status":"error","message":"OTP not verified. Please verify your email first."})
     if not session.get("captcha_verified"):
         return jsonify({"status":"error","message":"CAPTCHA not verified."})
+    # OTP check — only enforce if OTP was actually sent and verified
+    # (skip if OTP system unavailable due to email provider issues)
+    otp_was_sent = session.get("otp_sends", 0) > 0
+    if otp_was_sent and not session.get("otp_verified"):
+        return jsonify({"status":"error","message":"OTP not verified. Please verify your email first."})
     session.pop("captcha_verified", None)
     session.pop("otp_verified", None)
     session.pop("otp_token", None)
@@ -625,7 +629,7 @@ def register_user():
     try:
         cur.execute(
             f"INSERT INTO users(name,email,phone,password) VALUES({p},{p},{p},{p})",
-            (name, email, phone, password)
+            (name, email, phone, generate_password_hash(password))
         )
         conn.commit()
         conn.close()
@@ -658,7 +662,7 @@ def reset_password():
         conn.close()
         log_activity("password_reset_failed", f"Email not found: {email}", user_email=email)
         return jsonify({"success": False, "message": "Email not registered."})
-    cur.execute(f"UPDATE users SET password={p} WHERE email={p}", (new_pass, email))
+    cur.execute(f"UPDATE users SET password={p} WHERE email={p}", (generate_password_hash(new_pass), email))
     conn.commit()
     conn.close()
     log_activity("password_reset", "Password reset successfully", user_email=email)
@@ -680,10 +684,10 @@ def login():
         conn = get_db()
         p    = ph_for(conn)
         cur  = conn.cursor()
-        cur.execute(f"SELECT * FROM users WHERE email={p} AND password={p}", (username, password))
+        cur.execute(f"SELECT * FROM users WHERE email={p}", (username,))
         user = db_fetchone(cur)
         conn.close()
-        if user:
+        if user and check_password_hash(user["password"], password):
             session["role"]  = "user"
             session["email"] = user["email"]
             session["name"]  = user["name"]

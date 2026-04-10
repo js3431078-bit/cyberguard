@@ -424,12 +424,11 @@ def _send_email_otp(to_email, otp):
         f"— CyberGuard Security Team"
     )
 
-    # ── Resend HTTP API (primary — works on Railway) ──────────────────────
+    # ── Resend HTTP API (primary — works on Railway, sends to ANY email) ──
     if resend_key:
         try:
-            smtp_user = os.environ.get("SMTP_USER", "").strip()
-            # Use verified sender email if available, else use onboarding@resend.dev
-            from_addr = f"CyberGuard <{smtp_user}>" if smtp_user else "CyberGuard <onboarding@resend.dev>"
+            # Always use onboarding@resend.dev as sender — works without domain verification
+            # and can send to ANY recipient email address
             resp = _requests.post(
                 "https://api.resend.com/emails",
                 headers={
@@ -437,7 +436,7 @@ def _send_email_otp(to_email, otp):
                     "Content-Type": "application/json"
                 },
                 json={
-                    "from":    from_addr,
+                    "from":    "CyberGuard <onboarding@resend.dev>",
                     "to":      [to_email],
                     "subject": subject,
                     "text":    body
@@ -447,26 +446,6 @@ def _send_email_otp(to_email, otp):
             if resp.status_code in (200, 201):
                 logging.info(f"OTP sent via Resend to {_mask_email(to_email)}")
                 return
-            # If 403 (unverified sender), try with onboarding@resend.dev
-            if resp.status_code == 403:
-                resp2 = _requests.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {resend_key}",
-                        "Content-Type": "application/json"
-                    },
-                    json={
-                        "from":    "CyberGuard <onboarding@resend.dev>",
-                        "to":      [to_email],
-                        "subject": subject,
-                        "text":    body
-                    },
-                    timeout=15
-                )
-                if resp2.status_code in (200, 201):
-                    logging.info(f"OTP sent via Resend (onboarding) to {_mask_email(to_email)}")
-                    return
-                raise ValueError(f"Resend error {resp2.status_code}: {resp2.text[:200]}")
             raise ValueError(f"Resend error {resp.status_code}: {resp.text[:200]}")
         except ValueError:
             raise

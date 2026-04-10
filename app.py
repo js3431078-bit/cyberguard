@@ -436,15 +436,18 @@ def _send_email_otp(to_email, otp):
     msg["From"]    = f"CyberGuard <{gmail_user}>"
     msg["To"]      = to_email
 
-    # Port 465 SSL — most reliable on cloud servers
     ctx = _ssl.create_default_context()
+    e1 = e2 = None
+
+    # Port 465 SSL — most reliable on cloud servers
     try:
         with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx, timeout=15) as s:
             s.login(gmail_user, gmail_pass)
             s.send_message(msg)
-        logging.info(f"OTP sent via Gmail SMTP to {_mask_email(to_email)}")
+        logging.info(f"OTP sent via Gmail SMTP 465 to {_mask_email(to_email)}")
         return
-    except Exception as e1:
+    except Exception as err:
+        e1 = err
         logging.warning(f"SMTP 465 failed: {e1}")
 
     # Fallback: port 587 TLS
@@ -456,8 +459,10 @@ def _send_email_otp(to_email, otp):
             s.send_message(msg)
         logging.info(f"OTP sent via Gmail SMTP 587 to {_mask_email(to_email)}")
         return
-    except Exception as e2:
-        raise ValueError(f"Gmail SMTP failed. 465: {e1} | 587: {e2}")
+    except Exception as err:
+        e2 = err
+
+    raise ValueError(f"Gmail SMTP failed. 465: {e1} | 587: {e2}")
 
 
 

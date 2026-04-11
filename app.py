@@ -413,7 +413,7 @@ def _mask_email(email):
         return "***"
 
 def _send_email_otp(to_email, otp):
-    """Send OTP via Gmail SMTP (port 465 SSL) — works on Railway."""
+    """Send OTP via Hostinger SMTP (smtp.hostinger.com port 465)."""
     import ssl as _ssl
 
     subject = "CyberGuard — Email Verification OTP"
@@ -424,47 +424,61 @@ def _send_email_otp(to_email, otp):
         f"— CyberGuard Security Team"
     )
 
-    gmail_user = os.environ.get("SMTP_USER", "").strip()
-    gmail_pass = os.environ.get("SMTP_PASS", "").strip()
+    smtp_user = os.environ.get("SMTP_USER", "").strip()
+    smtp_pass = os.environ.get("SMTP_PASS", "").strip()
+    smtp_host = os.environ.get("SMTP_HOST", "smtp.hostinger.com").strip()
+    smtp_port = int(os.environ.get("SMTP_PORT", "465"))
 
-    if not gmail_user or not gmail_pass:
+    if not smtp_user or not smtp_pass:
         raise ValueError("SMTP credentials not configured.")
 
     from email.mime.text import MIMEText as _MT
     msg = _MT(body, "plain")
     msg["Subject"] = subject
-    msg["From"]    = f"CyberGuard <{gmail_user}>"
+    msg["From"]    = f"CyberGuard <{smtp_user}>"
     msg["To"]      = to_email
 
     ctx = _ssl.create_default_context()
-    e1 = e2 = None
-
-    # Port 465 SSL — most reliable on cloud servers
     try:
-        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ctx, timeout=15) as s:
-            s.login(gmail_user, gmail_pass)
+        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx, timeout=15) as s:
+            s.login(smtp_user, smtp_pass)
             s.send_message(msg)
-        logging.info(f"OTP sent via Gmail SMTP 465 to {_mask_email(to_email)}")
+        logging.info(f"OTP sent via Hostinger SMTP to {_mask_email(to_email)}")
         return
-    except Exception as err:
-        e1 = err
-        logging.warning(f"SMTP 465 failed: {e1}")
+    except Exception as e:
+        raise ValueError(f"Hostinger SMTP failed: {e}")
 
-    # Fallback: port 587 TLS
-    try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as s:
-            s.ehlo()
-            s.starttls(context=ctx)
-            s.login(gmail_user, gmail_pass)
-            s.send_message(msg)
-        logging.info(f"OTP sent via Gmail SMTP 587 to {_mask_email(to_email)}")
-        return
-    except Exception as err:
-        e2 = err
+    # ── SMTP fallback (try both ports) ────────────────────────────────────
+    import ssl as _ssl
+    gmail_user = os.environ.get("SMTP_USER", "").strip()
+    gmail_pass = os.environ.get("SMTP_PASS", "").strip()
+    errors = []
 
-    raise ValueError(f"Gmail SMTP failed. 465: {e1} | 587: {e2}")
+    if gmail_user and gmail_pass:
+        for port, use_ssl in [(587, False), (465, True)]:
+            try:
+                from email.mime.text import MIMEText as _MT
+                msg = _MT(body, "plain")
+                msg["Subject"] = subject
+                msg["From"]    = f"CyberGuard <{gmail_user}>"
+                msg["To"]      = to_email
+                if use_ssl:
+                    ctx = _ssl.create_default_context()
+                    ctx.check_hostname = False
+                    ctx.verify_mode = _ssl.CERT_NONE
+                    with smtplib.SMTP_SSL("smtp.gmail.com", port, context=ctx, timeout=10) as s:
+                        s.login(gmail_user, gmail_pass)
+                        s.send_message(msg)
+                else:
+                    with smtplib.SMTP("smtp.gmail.com", port, timeout=10) as s:
+                        s.ehlo(); s.starttls(); s.login(gmail_user, gmail_pass)
+                        s.send_message(msg)
+                logging.info(f"OTP sent via SMTP:{port} to {_mask_email(to_email)}")
+                return
+            except Exception as e:
+                errors.append(f"{port}:{e}")
 
-
+    raise ValueError(f"All email methods failed. Errors: {' | '.join(errors) if errors else 'No credentials configured'}")
 
 def _send_sms_otp(phone, otp):
     api_key = os.environ.get("FAST2SMS_KEY", "").strip()

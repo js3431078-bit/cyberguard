@@ -413,8 +413,8 @@ def _mask_email(email):
         return "***"
 
 def _send_email_otp(to_email, otp):
-    """Send OTP via Hostinger SMTP (smtp.hostinger.com port 465)."""
-    import ssl as _ssl
+    """Send OTP via Resend HTTP API — works on Railway (no SMTP ports needed)."""
+    resend_key = os.environ.get("RESEND_KEY", "").strip()
 
     subject = "CyberGuard — Email Verification OTP"
     body = (
@@ -424,29 +424,82 @@ def _send_email_otp(to_email, otp):
         f"— CyberGuard Security Team"
     )
 
-    smtp_user = os.environ.get("SMTP_USER", "").strip()
-    smtp_pass = os.environ.get("SMTP_PASS", "").strip()
-    smtp_host = os.environ.get("SMTP_HOST", "smtp.hostinger.com").strip()
-    smtp_port = int(os.environ.get("SMTP_PORT", "465"))
+    # ── Resend HTTP API (primary — works on Railway) ──────────────────────
+    if resend_key:
+        try:
+            smtp_user = os.environ.get("SMTP_USER", "").strip()
+            from_addr = f"CyberGuard <{smtp_user}>" if smtp_user else "CyberGuard <onboarding@resend.dev>"
+            resp = _requests.post(
+                "https://api.resend.com/emails",
+                headers={
+                    "Authorization": f"Bearer {resend_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "from":    from_addr,
+                    "to":      [to_email],
+                    "subject": subject,
+                    "text":    body
+                },
+                timeout=15
+            )
+            if resp.status_code in (200, 201):
+                logging.info(f"OTP sent via Resend to {_mask_email(to_email)}")
+                return
+            if resp.status_code == 403:
+                resp2 = _requests.post(
+                    "https://api.resend.com/emails",
+                    headers={
+                        "Authorization": f"Bearer {resend_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "from":    "CyberGuard <onboarding@resend.dev>",
+                        "to":      [to_email],
+                        "subject": subject,
+                        "text":    body
+                    },
+                    timeout=15
+                )
+                if resp2.status_code in (200, 201):
+                    logging.info(f"OTP sent via Resend (onboarding) to {_mask_email(to_email)}")
+                    return
+                raise ValueError(f"Resend error {resp2.status_code}: {resp2.text[:200]}")
+            raise ValueError(f"Resend error {resp.status_code}: {resp.text[:200]}")
+        except ValueError:
+            raise
+        except Exception as e:
+            logging.warning(f"Resend failed: {e}")
 
-    if not smtp_user or not smtp_pass:
-        raise ValueError("SMTP credentials not configured.")
+    # ── SMTP fallback ─────────────────────────────────────────────────────
+    import ssl as _ssl
+    gmail_user = os.environ.get("SMTP_USER", "").strip()
+    gmail_pass = os.environ.get("SMTP_PASS", "").strip()
+    errors = []
 
-    from email.mime.text import MIMEText as _MT
-    msg = _MT(body, "plain")
-    msg["Subject"] = subject
-    msg["From"]    = f"CyberGuard <{smtp_user}>"
-    msg["To"]      = to_email
+    if gmail_user and gmail_pass:
+        for port, use_ssl in [(465, True), (587, False)]:
+            try:
+                from email.mime.text import MIMEText as _MT
+                msg = _MT(body, "plain")
+                msg["Subject"] = subject
+                msg["From"]    = f"CyberGuard <{gmail_user}>"
+                msg["To"]      = to_email
+                ctx = _ssl.create_default_context()
+                if use_ssl:
+                    with smtplib.SMTP_SSL("smtp.gmail.com", port, context=ctx, timeout=10) as s:
+                        s.login(gmail_user, gmail_pass)
+                        s.send_message(msg)
+                else:
+                    with smtplib.SMTP("smtp.gmail.com", port, timeout=10) as s:
+                        s.ehlo(); s.starttls(); s.login(gmail_user, gmail_pass)
+                        s.send_message(msg)
+                logging.info(f"OTP sent via SMTP:{port} to {_mask_email(to_email)}")
+                return
+            except Exception as e:
+                errors.append(f"{port}:{e}")
 
-    ctx = _ssl.create_default_context()
-    try:
-        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=ctx, timeout=15) as s:
-            s.login(smtp_user, smtp_pass)
-            s.send_message(msg)
-        logging.info(f"OTP sent via Hostinger SMTP to {_mask_email(to_email)}")
-        return
-    except Exception as e:
-        raise ValueError(f"Hostinger SMTP failed: {e}")
+    raise ValueError(f"All email methods failed. Errors: {' | '.join(errors) if errors else 'No credentials configured'}")
 
     # ── SMTP fallback (try both ports) ────────────────────────────────────
     import ssl as _ssl

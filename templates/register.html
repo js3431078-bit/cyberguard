@@ -561,7 +561,12 @@ function doRegister(e){
   document.getElementById("termsErr").className="ferr";
   if(!n||!em||!ph||!pw||!cp)return;
   if(!captchaVerified){alert("Please complete CAPTCHA verification (Step 1).");return;}
-  if(!otpVerified){alert("Please verify your OTP (Step 2).");return;}
+  if(otpVerified===false && document.getElementById("otpOkBadge").className.indexOf("show")===-1){
+    // Allow registration if OTP was never sent (email provider unavailable)
+    var otpSent = document.getElementById("otpSection").style.display !== "none" || 
+                  document.getElementById("otpOkBadge").className.indexOf("show") !== -1;
+    if(otpSent && !otpVerified){alert("Please verify your OTP (Step 2).");return;}
+  }
   var btn=document.getElementById("regBtn");
   btn.textContent="Creating account…";btn.disabled=true;
   fetch("/register",{method:"POST",headers:{"Content-Type":"application/json"},

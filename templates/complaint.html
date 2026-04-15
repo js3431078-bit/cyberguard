@@ -303,14 +303,13 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
             <input type="tel" name="phone" placeholder="10-digit number" maxlength="10"
               oninput="this.value=this.value.replace(/[^0-9]/g,'')">
           </div>
-          <div class="f">
+        <div class="f">
             <label>Incident Date</label>
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-              <select id="inc_day" name="inc_day">
+              <select id="inc_day" name="inc_day" onchange="validateDate()">
                 <option value="">Day</option>
-                <script>for(var d=1;d<=31;d++){document.write('<option>'+d+'</option>');}</script>
               </select>
-              <select id="inc_month" name="inc_month">
+              <select id="inc_month" name="inc_month" onchange="updateDays();validateDate()">
                 <option value="">Month</option>
                 <option value="01">January</option><option value="02">February</option>
                 <option value="03">March</option><option value="04">April</option>
@@ -319,11 +318,12 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
                 <option value="09">September</option><option value="10">October</option>
                 <option value="11">November</option><option value="12">December</option>
               </select>
-              <select id="inc_year" name="inc_year">
+              <select id="inc_year" name="inc_year" onchange="updateDays();validateDate()">
                 <option value="">Year</option>
                 <script>for(var y=new Date().getFullYear();y>=2015;y--){document.write('<option>'+y+'</option>');}</script>
               </select>
             </div>
+            <div style="font-size:10px;color:#e63946;margin-top:3px;display:none;" id="dateErr">Invalid date selected.</div>
             <input type="hidden" name="date" id="dateHidden">
           </div>
         </div>
@@ -617,6 +617,44 @@ document.querySelector('[name="platform"]').addEventListener("change", function(
 });
 
 
+// ── Smart Date — only valid days for selected month/year ──
+function updateDays() {
+  var m = parseInt(document.getElementById("inc_month").value);
+  var y = parseInt(document.getElementById("inc_year").value);
+  var dayEl = document.getElementById("inc_day");
+  var selected = dayEl.value;
+  var maxDay = 31;
+  if (m) {
+    if (m === 2) {
+      maxDay = (y && ((y%4===0 && y%100!==0) || y%400===0)) ? 29 : 28;
+    } else if ([4,6,9,11].indexOf(m) !== -1) {
+      maxDay = 30;
+    }
+  }
+  dayEl.innerHTML = '<option value="">Day</option>';
+  for (var d=1; d<=maxDay; d++) {
+    var opt = document.createElement("option");
+    opt.value = d; opt.textContent = d;
+    if (d == selected) opt.selected = true;
+    dayEl.appendChild(opt);
+  }
+}
+function validateDate() {
+  var d = document.getElementById("inc_day").value;
+  var m = document.getElementById("inc_month").value;
+  var y = document.getElementById("inc_year").value;
+  var errEl = document.getElementById("dateErr");
+  if (d && m && y) {
+    var date = new Date(y, m-1, d);
+    var today = new Date(); today.setHours(0,0,0,0);
+    if (date > today) {
+      errEl.style.display = "block";
+      errEl.textContent = "Incident date cannot be in the future.";
+    } else { errEl.style.display = "none"; }
+  }
+}
+updateDays();
+
 function buildDate() {
   var d = document.getElementById("inc_day").value;
   var m = document.getElementById("inc_month").value;
@@ -663,6 +701,11 @@ function submitComplaint(e) {
   var m = document.getElementById("inc_month").value;
   var y = document.getElementById("inc_year").value;
   if (!d || !m || !y) errors.push("Please select the full incident date (Day, Month, Year).");
+  else {
+    var date = new Date(y, m-1, d);
+    var today = new Date(); today.setHours(0,0,0,0);
+    if (date > today) errors.push("Incident date cannot be in the future.");
+  }
 
   // Image required
   var imgUp = document.getElementById("imgUp");

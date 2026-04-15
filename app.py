@@ -1212,9 +1212,10 @@ def track_complaint():
             conn = get_db()
             p = ph_for(conn)
             cur = conn.cursor()
+            # Search by ID only — no email filter so any user can track their complaint
             cur.execute(
-                f"SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id={p} AND user_email={p}",
-                (raw_id, session["email"])
+                f"SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id={p}",
+                (raw_id,)
             )
             row = db_fetchone(cur)
             conn.close()
@@ -1223,7 +1224,7 @@ def track_complaint():
                 from datetime import datetime as dt
                 result["formatted_id"] = f"CG-{dt.now().year}-{result['id']:05d}"
             else:
-                error = "No complaint found with that ID for your account."
+                error = "No complaint found with that ID. Please check and try again."
         log_activity("track_complaint", f"Tracked: {cid}")
     return render_template("track.html", result=result, error=error,
                            username=session.get("name"))

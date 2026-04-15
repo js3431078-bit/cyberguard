@@ -372,11 +372,6 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
         </div>
 
         <div class="f">
-          <label>Suspicious URL / Link (if any)</label>
-          <input type="url" name="suspect_url" placeholder="https://suspicious-link.com (paste the link here)">
-        </div>
-
-        <div class="f">
           <label>Describe the Incident <span style="color:#e63946;">*</span></label>          <div class="ta-wrap">
             <textarea name="description" id="descTA"
               placeholder="Describe what happened in detail — when, where, how, who was involved. The more detail you provide, the better our AI can help you..."
@@ -388,13 +383,29 @@ body{font-family:'Segoe UI',Arial,sans-serif;background:#f0f4f8;min-height:100vh
 
         <div class="f-row">
           <div class="f">
-            <span class="file-label">📷 Screenshot / Image (max 2MB)</span>
-            <input type="file" name="image" id="imgUp" accept="image/*">
+            <span class="file-label">📷 Screenshot / Image (max 2MB) <span style="color:#e63946;">*</span></span>
+            <input type="file" name="image" id="imgUp" accept="image/*" required>
+            <div style="font-size:10px;color:#e63946;margin-top:3px;" id="imgErr"></div>
           </div>
           <div class="f">
-            <span class="file-label">🎥 Video Evidence (max 10MB)</span>
+            <span class="file-label">🎥 Video Evidence (max 10MB) <span style="color:#e63946;">*</span></span>
             <input type="file" name="video" id="vidUp" accept="video/*">
+            <div style="font-size:10px;color:#94a3b8;margin-top:3px;">Optional if image provided</div>
           </div>
+        </div>
+
+        <div class="f">
+          <label>🔗 Suspicious URL / Evidence Link <span style="color:#e63946;">*</span></label>
+          <input type="text" name="suspect_url" id="suspectUrl" placeholder="https://suspicious-link.com OR type 'N/A' if not applicable">
+          <div style="font-size:10px;color:#94a3b8;margin-top:3px;">Paste the suspicious link, or type N/A if none</div>
+        </div>
+
+        <!-- Account Verification Section (shown based on crime type) -->
+        <div class="f" id="accountVerifySection" style="display:none;">
+          <label id="accountVerifyLabel">📱 Account Verification <span style="color:#e63946;">*</span></label>
+          <input type="text" name="account_id" id="accountId" placeholder="">
+          <div style="font-size:10px;color:#94a3b8;margin-top:3px;" id="accountVerifyHint"></div>
+          <div style="font-size:10px;color:#e63946;margin-top:2px;" id="accountVerifyErr"></div>
         </div>
 
         <button type="submit" class="btn-submit" id="submitBtn">
@@ -573,7 +584,39 @@ function resetAI() {
   document.getElementById("actionBox").style.display = "none";
 }
 
-// ── Combine Day/Month/Year into hidden date field ──
+// ── Account Verification based on crime/platform ──
+var ACCOUNT_VERIFY = {
+  "WhatsApp":   { label: "📱 WhatsApp Account Number", hint: "Enter the WhatsApp number that was hacked (with country code, e.g. +91XXXXXXXXXX)" },
+  "Instagram":  { label: "📸 Instagram Username", hint: "Enter your Instagram username (e.g. @yourname)" },
+  "Facebook":   { label: "👤 Facebook Profile URL or Name", hint: "Enter your Facebook profile URL or full name" },
+  "Telegram":   { label: "✈️ Telegram Username or Number", hint: "Enter your Telegram username or phone number" },
+  "Snapchat":   { label: "👻 Snapchat Username", hint: "Enter your Snapchat username" },
+  "Twitter / X":{ label: "🐦 Twitter/X Username", hint: "Enter your Twitter/X handle (e.g. @yourname)" },
+  "Email":      { label: "📧 Affected Email Address", hint: "Enter the email address that was compromised" },
+  "College Portal": { label: "🎓 College Portal Username/ID", hint: "Enter your college portal login ID or roll number" },
+  "UPI / PhonePe / GPay": { label: "💳 UPI ID or Phone Number", hint: "Enter your UPI ID (e.g. name@upi) or registered phone number" },
+};
+
+function updateAccountVerify(platform) {
+  var section = document.getElementById("accountVerifySection");
+  var info = ACCOUNT_VERIFY[platform];
+  if (info) {
+    document.getElementById("accountVerifyLabel").innerHTML = info.label + ' <span style="color:#e63946;">*</span>';
+    document.getElementById("accountId").placeholder = info.hint;
+    document.getElementById("accountVerifyHint").textContent = info.hint;
+    section.style.display = "block";
+  } else {
+    section.style.display = "none";
+    document.getElementById("accountId").value = "";
+  }
+}
+
+// Listen to platform change
+document.querySelector('[name="platform"]').addEventListener("change", function() {
+  updateAccountVerify(this.value);
+});
+
+
 function buildDate() {
   var d = document.getElementById("inc_day").value;
   var m = document.getElementById("inc_month").value;
@@ -620,6 +663,23 @@ function submitComplaint(e) {
   var m = document.getElementById("inc_month").value;
   var y = document.getElementById("inc_year").value;
   if (!d || !m || !y) errors.push("Please select the full incident date (Day, Month, Year).");
+
+  // Image required
+  var imgUp = document.getElementById("imgUp");
+  if (!imgUp || !imgUp.files || imgUp.files.length === 0) errors.push("Screenshot/Image evidence is required.");
+
+  // Suspect URL required
+  var suspectUrl = document.getElementById("suspectUrl");
+  if (!suspectUrl || !suspectUrl.value.trim()) errors.push("Please provide a suspicious URL or type 'N/A'.");
+
+  // Account verification required if shown
+  var accSection = document.getElementById("accountVerifySection");
+  if (accSection && accSection.style.display !== "none") {
+    var accId = document.getElementById("accountId");
+    if (!accId || !accId.value.trim()) {
+      errors.push(document.getElementById("accountVerifyLabel").textContent.replace(" *","") + " is required.");
+    }
+  }
 
   if (errors.length > 0) {
     alert("⚠️ Please fix the following:\n\n" + errors.join("\n"));

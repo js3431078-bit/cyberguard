@@ -872,6 +872,22 @@ def submit_complaint():
         rand_part = _sec.token_hex(3).upper()  # 6 random hex chars
         formatted_id = f"CG-{dt.now().strftime('%Y%m%d')}-{rand_part}"
 
+        # Save formatted_id to DB
+        try:
+            conn2 = get_db()
+            p2 = ph_for(conn2)
+            cur2 = conn2.cursor()
+            try:
+                cur2.execute(f"ALTER TABLE complaints ADD COLUMN formatted_id TEXT")
+                conn2.commit()
+            except Exception:
+                pass  # column already exists
+            cur2.execute(f"UPDATE complaints SET formatted_id={p2} WHERE id={p2}", (formatted_id, complaint_id))
+            conn2.commit()
+            conn2.close()
+        except Exception as _fe:
+            logging.warning(f"Could not save formatted_id: {_fe}")
+
         log_activity("complaint_submitted", f"ID: {formatted_id}, Crime: {crime_type}")
 
         # ── Forward to cybercrime.gov.in (deep link with pre-filled data) ──
@@ -1196,27 +1212,34 @@ def track_complaint():
     error  = None
     if request.method == "POST":
         cid = request.form.get("complaint_id","").strip().upper()
-        # Accept both "CG-2026-00042" and plain "42"
         raw_id = None
-        if cid.startswith("CG-") and len(cid.split("-")) == 3:
-            try:
-                raw_id = int(cid.split("-")[2])
-            except ValueError:
-                error = "Invalid complaint ID format."
-        elif cid.isdigit():
-            raw_id = int(cid)
-        else:
-            error = "Please enter a valid Complaint ID (e.g. CG-2026-00042 or 42)."
+        parts = cid.split("-")
 
-        if raw_id is not None:
+        # Format 1: CG-20260415-4B8F5B (new format with hex)
+        if cid.startswith("CG-") and len(parts) == 3:
             conn = get_db()
             p = ph_for(conn)
             cur = conn.cursor()
-            # Search by ID only — no email filter so any user can track their complaint
+            # Search by formatted_id stored in DB
             cur.execute(
-                f"SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id={p}",
-                (raw_id,)
+                f"SELECT id,name,crime_type,date,status,submitted,formatted_id FROM complaints WHERE UPPER(COALESCE(formatted_id,''))={p}",
+                (cid,)
             )
+            row = db_fetchone(cur)
+            conn.close()
+            if row:
+                result = row
+                result["formatted_id"] = cid
+            else:
+                error = "No complaint found with that ID. Please check and try again."
+
+        # Format 2: plain number
+        elif cid.isdigit():
+            raw_id = int(cid)
+            conn = get_db()
+            p = ph_for(conn)
+            cur = conn.cursor()
+            cur.execute(f"SELECT id,name,crime_type,date,status,submitted FROM complaints WHERE id={p}", (raw_id,))
             row = db_fetchone(cur)
             conn.close()
             if row:
@@ -1225,6 +1248,8 @@ def track_complaint():
                 result["formatted_id"] = f"CG-{dt.now().year}-{result['id']:05d}"
             else:
                 error = "No complaint found with that ID. Please check and try again."
+        else:
+            error = "Please enter a valid Complaint ID (e.g. CG-20260415-4B8F5B)."
         log_activity("track_complaint", f"Tracked: {cid}")
     return render_template("track.html", result=result, error=error,
                            username=session.get("name"))

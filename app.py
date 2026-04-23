@@ -334,7 +334,7 @@ def captcha_image():
     session["captcha_text"] = text
     session["captcha_time"] = time.time()
 
-    W, H = 200, 70
+    W, H = 280, 90
     img = Image.new("RGB", (W, H), color=(240, 244, 255))
     draw = ImageDraw.Draw(img)
 
@@ -353,7 +353,7 @@ def captcha_image():
     font = None
     for fname in ["arial.ttf","Arial.ttf","DejaVuSans-Bold.ttf","LiberationSans-Bold.ttf","/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"]:
         try:
-            font = ImageFont.truetype(fname, 36)
+            font = ImageFont.truetype(fname, 48)
             break
         except Exception:
             continue
@@ -361,16 +361,16 @@ def captcha_image():
         font = ImageFont.load_default()
 
     # Draw each character with slight rotation & color variation
-    x_offset = 8
+    x_offset = 12
     for ch in text:
         color = (random.randint(10,60), random.randint(10,80), random.randint(120,200))
-        char_img = Image.new("RGBA", (36, 56), (0,0,0,0))
+        char_img = Image.new("RGBA", (48, 70), (0,0,0,0))
         char_draw = ImageDraw.Draw(char_img)
         char_draw.text((2, 4), ch, font=font, fill=color)
         angle = random.randint(-18, 18)
         char_img = char_img.rotate(angle, expand=True, resample=Image.BICUBIC)
-        img.paste(char_img, (x_offset, random.randint(4, 14)), char_img)
-        x_offset += 30
+        img.paste(char_img, (x_offset, random.randint(4, 18)), char_img)
+        x_offset += 40
 
     img = img.filter(ImageFilter.SMOOTH)
     buf = _io.BytesIO()
@@ -643,8 +643,6 @@ def register_user():
         return jsonify({"status":"error","message":"All fields are required."})
     if not session.get("captcha_verified"):
         return jsonify({"status":"error","message":"CAPTCHA not verified."})
-    # OTP check — only enforce if OTP was actually sent and verified
-    # (skip if OTP system unavailable due to email provider issues)
     otp_was_sent = session.get("otp_sends", 0) > 0
     if otp_was_sent and not session.get("otp_verified"):
         return jsonify({"status":"error","message":"OTP not verified. Please verify your email first."})
@@ -712,7 +710,7 @@ def login():
         conn = get_db()
         p    = ph_for(conn)
         cur  = conn.cursor()
-        cur.execute(f"SELECT * FROM users WHERE email={p}", (username,))
+        cur.execute(f"SELECT * FROM users WHERE email={p}",  (username,))
         user = db_fetchone(cur)
         conn.close()
         if user and check_password_hash(user["password"], password):

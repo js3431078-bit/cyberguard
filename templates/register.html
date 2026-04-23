@@ -8,6 +8,9 @@
 <meta name="theme-color" content="#1b3a57">
 <link rel="apple-touch-icon" href="/static/icons/icon-192.png">
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init("YOUR_PUBLIC_KEY");</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -117,15 +120,15 @@ body{
 /* CAPTCHA */
 .cap-wrap{
   background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;
-  padding:10px;display:flex;align-items:center;gap:8px;
+  padding:12px;display:flex;align-items:center;gap:10px;
 }
 .cap-wrap img{
-  height:56px;width:160px;border-radius:6px;
+  height:80px;width:220px;border-radius:6px;
   border:1.5px solid #cbd5e1;cursor:pointer;background:#e2e8f0;flex-shrink:0;
 }
 .cap-wrap input{
-  flex:1;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:7px;
-  font-size:14px;font-weight:700;letter-spacing:3px;text-align:center;
+  flex:1;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:7px;
+  font-size:18px;font-weight:700;letter-spacing:4px;text-align:center;
   outline:none;text-transform:uppercase;background:#fff;min-width:0;
 }
 .cap-wrap input:focus{border-color:#2563eb;}
@@ -467,7 +470,7 @@ function verifyCaptcha(){
 }
 
 // ── OTP ───────────────────────────────────────────────────────────────────────
-var otpVerified=false,otpTimerInt=null,resendInt=null;
+var otpVerified=false,otpTimerInt=null,resendInt=null,_currentOtp="";
 
 function sendOTP(resend){
   if(!captchaVerified){alert("Please complete CAPTCHA verification first (Step 1).");return;}
@@ -475,32 +478,57 @@ function sendOTP(resend){
   if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){alert("Please enter a valid email address first.");return;}
   var btn=document.getElementById("sendOtpBtn");
   btn.textContent="Sending…";btn.disabled=true;
-  fetch("/send-otp",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({method:"email",email:email,phone:""})})
-  .then(function(r){return r.json();})
-  .then(function(d){
-    if(d.status==="sent"){
-      document.getElementById("otpSection").style.display="block";
-      document.getElementById("verifyOtpBtn").style.display="block";
-      var sentMsg=d.message;
-      if(d.fallback)sentMsg="⚠️ "+sentMsg;
-      var msgEl=document.getElementById("otpSentMsg");
-      msgEl.textContent=sentMsg;
-      msgEl.style.color="";
-      document.getElementById("otpErr").className="ferr";
-      document.getElementById("otpInput").value="";
-      document.getElementById("otpInput").focus();
-      startOtpTimer(300);startResendCooldown(60);
-      btn.textContent="📤 Resend OTP";btn.disabled=false;
-    } else {
-      alert(d.message||"Failed to send OTP.");
-      btn.textContent="📤 Send OTP to Email";btn.disabled=false;
-    }
+
+  // Generate 6-digit OTP on frontend
+  _currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Send via EmailJS directly to user's email
+  emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+    to_email: email,
+    otp: _currentOtp,
+    to_name: document.getElementById("name").value.trim() || "User"
+  })
+  .then(function(){
+    // Also store OTP on server for verification
+    fetch("/send-otp",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({method:"email",email:email,phone:"",otp_override:_currentOtp})})
+    .catch(function(){});
+
+    document.getElementById("otpSection").style.display="block";
+    document.getElementById("verifyOtpBtn").style.display="block";
+    document.getElementById("otpSentMsg").textContent="OTP sent to "+email.replace(/(.{3}).*(@.*)/, "$1***$2");
+    document.getElementById("otpErr").className="ferr";
+    document.getElementById("otpInput").value="";
+    document.getElementById("otpInput").focus();
+    startOtpTimer(300);startResendCooldown(60);
+    btn.textContent="📤 Resend OTP";btn.disabled=false;
   })
   .catch(function(err){
-    console.error("send-otp fetch error:",err);
-    alert("Failed to send OTP: "+err.message);
-    btn.textContent="📤 Send OTP to Email";btn.disabled=false;
+    console.error("EmailJS error:",err);
+    // Fallback to server-side sending
+    fetch("/send-otp",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({method:"email",email:email,phone:""})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.status==="sent"){
+        _currentOtp=""; // server will verify
+        document.getElementById("otpSection").style.display="block";
+        document.getElementById("verifyOtpBtn").style.display="block";
+        document.getElementById("otpSentMsg").textContent=d.message;
+        document.getElementById("otpErr").className="ferr";
+        document.getElementById("otpInput").value="";
+        document.getElementById("otpInput").focus();
+        startOtpTimer(300);startResendCooldown(60);
+        btn.textContent="📤 Resend OTP";btn.disabled=false;
+      } else {
+        alert(d.message||"Failed to send OTP.");
+        btn.textContent="📤 Send OTP to Email";btn.disabled=false;
+      }
+    })
+    .catch(function(){
+      alert("Failed to send OTP. Please try again.");
+      btn.textContent="📤 Send OTP to Email";btn.disabled=false;
+    });
   });
 }
 
@@ -530,6 +558,21 @@ function verifyOTP(){
   if(!otp||otp.length!==6){showOtpErr("Enter the 6-digit OTP.");return;}
   var btn=document.getElementById("verifyOtpBtn");
   btn.textContent="Verifying…";btn.disabled=true;
+
+  // If OTP was generated on frontend, verify locally first
+  if(_currentOtp && otp === _currentOtp){
+    otpVerified=true;
+    clearInterval(otpTimerInt);
+    document.getElementById("otpSection").style.display="none";
+    document.getElementById("sendOtpBtn").style.display="none";
+    document.getElementById("verifyOtpBtn").style.display="none";
+    document.getElementById("otpOkBadge").className="vbadge show";
+    // Mark as verified on server too
+    fetch("/verify-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({otp:otp})}).catch(function(){});
+    return;
+  }
+
+  // Fallback: server-side verification
   fetch("/verify-otp",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({otp:otp})})
   .then(function(r){return r.json();})
   .then(function(d){
@@ -561,9 +604,8 @@ function doRegister(e){
   document.getElementById("termsErr").className="ferr";
   if(!n||!em||!ph||!pw||!cp)return;
   if(!captchaVerified){alert("Please complete CAPTCHA verification (Step 1).");return;}
-  if(otpVerified===false && document.getElementById("otpOkBadge").className.indexOf("show")===-1){
-    // Allow registration if OTP was never sent (email provider unavailable)
-    var otpSent = document.getElementById("otpSection").style.display !== "none" || 
+  if(!otpVerified && document.getElementById("otpOkBadge").className.indexOf("show")===-1){
+    var otpSent = document.getElementById("otpSection").style.display !== "none" ||
                   document.getElementById("otpOkBadge").className.indexOf("show") !== -1;
     if(otpSent && !otpVerified){alert("Please verify your OTP (Step 2).");return;}
   }

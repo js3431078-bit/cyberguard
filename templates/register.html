@@ -10,7 +10,7 @@
 <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='logo-icon.svg') }}">
 <!-- EmailJS -->
 <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
-<script>emailjs.init("YOUR_PUBLIC_KEY");</script>
+<script>emailjs.init("YGnXwvqwcUTDGXi7m");</script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{
@@ -483,7 +483,7 @@ function sendOTP(resend){
   _currentOtp = Math.floor(100000 + Math.random() * 900000).toString();
 
   // Send via EmailJS directly to user's email
-  emailjs.send("YOUR_SERVICE_ID", "YOUR_TEMPLATE_ID", {
+  emailjs.send("service_gv2qdod", "template_i328v9s", {
     to_email: email,
     otp: _currentOtp,
     to_name: document.getElementById("name").value.trim() || "User"

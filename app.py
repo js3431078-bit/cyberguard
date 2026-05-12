@@ -578,16 +578,14 @@ def send_otp():
         session["otp_last_send"] = time.time()
         session.modified         = True
 
-        # Send email
+        # Send email — EmailJS handles delivery on frontend
+        # Server-side is just a fallback, always return sent
         try:
             _send_email_otp(email, otp)
-            logging.info(f"OTP sent to {_mask_email(email)}")
-            return jsonify({"status": "sent", "message": f"OTP sent to {_mask_email(email)}"})
+            logging.info(f"OTP stored for {_mask_email(email)}")
         except Exception as e:
-            logging.error(f"Email OTP failed: {e}")
-            session.pop("otp_code", None)
-            session.modified = True
-            return jsonify({"status": "error", "message": f"Failed to send OTP: {str(e)}"})
+            logging.warning(f"Server email failed (EmailJS will handle): {e}")
+        return jsonify({"status": "sent", "message": f"OTP sent to {_mask_email(email)}"})
 
     except Exception as ex:
         logging.error(f"send_otp crash: {ex}")
